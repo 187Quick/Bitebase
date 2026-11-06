@@ -4,23 +4,32 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Bitebase</title>
-  <meta name="description" content="Kalorien zählen, Bedarf berechnen und Training erfassen.">
-  <meta name="theme-color" content="#f6f7f4" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#121512" media="(prefers-color-scheme: dark)">
+  <meta name="description" content="Kalorien zählen, Bedarf berechnen und Krafttraining erfassen.">
+  <meta name="theme-color" content="#080b14">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Bitebase">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=Orbitron:wght@600;800;900&display=swap">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
+    <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3 9.5v5M21 9.5v5M6.5 12h11"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></symbol>
+  </svg>
+
   <header class="topbar">
     <button class="icon-btn" id="prev-day" aria-label="Vorheriger Tag">‹</button>
     <div class="topbar-title">
-      <span class="brand">Bitebase</span>
+      <span class="brand">BITEBASE</span>
       <button class="date-label" id="date-label" aria-label="Zurück zu heute">Heute</button>
     </div>
     <button class="icon-btn" id="next-day" aria-label="Nächster Tag">›</button>
@@ -28,36 +37,54 @@
 
   <main id="main">
     <!-- HEUTE -->
-    <section class="view" id="view-today" data-view="today">
-      <div class="card summary">
-        <div class="ring-wrap">
-          <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
-            <circle class="ring-track" cx="60" cy="60" r="52"></circle>
-            <circle class="ring-fill" id="ring-fill" cx="60" cy="60" r="52"></circle>
-          </svg>
-          <div class="ring-center">
-            <div class="ring-value" id="remaining-kcal">0</div>
-            <div class="ring-caption" id="remaining-caption">kcal übrig</div>
+    <section class="view" data-view="today">
+      <div class="card player">
+        <div class="lvl-badge"><span>LVL</span><strong id="lvl">1</strong></div>
+        <div class="player-main">
+          <div class="player-row">
+            <span class="xp-label" id="xp-label">0 / 100 XP</span>
+            <span class="streak" id="streak">🔥 0</span>
           </div>
-        </div>
-        <div class="summary-stats">
-          <div><span class="stat-label">Ziel</span><span class="stat-value" id="stat-target">0</span></div>
-          <div><span class="stat-label">Gegessen</span><span class="stat-value" id="stat-eaten">0</span></div>
-          <div><span class="stat-label">Training</span><span class="stat-value" id="stat-burned">0</span></div>
+          <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
         </div>
       </div>
 
-      <div class="card">
-        <h2>Makros</h2>
-        <div class="macros" id="macros"></div>
+      <div class="card kcal-card">
+        <div class="hud-label">Kalorien</div>
+        <div class="kcal-line">
+          <span class="kcal-eaten" id="kcal-eaten">0</span>
+          <span class="kcal-sep">/</span>
+          <span class="kcal-target" id="kcal-target">–</span>
+          <span class="kcal-unit">kcal</span>
+        </div>
+        <div class="hp-bar"><div class="hp-fill" id="kcal-fill"></div></div>
+        <div class="kcal-foot">
+          <span id="kcal-remaining"></span>
+          <span class="muted" id="kcal-breakdown"></span>
+        </div>
       </div>
 
       <div id="setup-hint" class="card hint hidden">
-        <p>Lege zuerst im <strong>Profil</strong> deine Daten fest, damit Bitebase deinen Tagesbedarf berechnen kann.</p>
+        <p>Lege im <strong>Profil</strong> deine Daten fest, damit Bitebase dein Kalorienziel berechnet.</p>
         <button class="btn primary" data-goto="profile">Zum Profil</button>
       </div>
 
-      <div id="meals"></div>
+      <div class="card">
+        <div class="hud-label">Makros</div>
+        <div class="macros" id="macros"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Gegessen</h2>
+          <span class="muted" id="food-count"></span>
+        </div>
+        <ul class="list" id="food-list"></ul>
+        <div class="btn-row">
+          <button class="btn primary" id="btn-add-food">+ Essen</button>
+          <button class="btn" data-goto="scan"><svg class="ico"><use href="#i-camera"/></svg> Scanner</button>
+        </div>
+      </div>
 
       <div class="card">
         <div class="card-head">
@@ -66,25 +93,20 @@
         </div>
         <ul class="list" id="today-workouts"></ul>
       </div>
-
-      <div class="fab-row">
-        <button class="btn primary" id="btn-add-food">+ Essen</button>
-        <button class="btn" data-goto="scan">📷 Food-Scanner</button>
-      </div>
     </section>
 
     <!-- SCANNER -->
-    <section class="view" id="view-scan" data-view="scan" hidden>
+    <section class="view" data-view="scan" hidden>
       <div class="card">
         <h2>Food-Scanner</h2>
         <p class="muted">Fotografiere dein Essen. Die KI schätzt Kalorien und Makros, du kannst alles vor dem Speichern anpassen.</p>
         <div id="scan-no-key" class="hint-inline hidden">
           Für den Scanner brauchst du einen Claude-API-Schlüssel. <button class="link" data-goto="profile">Im Profil hinterlegen</button>
         </div>
-        <label class="photo-drop" id="photo-drop">
+        <label class="photo-drop">
           <input type="file" id="photo-input" accept="image/*" capture="environment">
           <img id="photo-preview" alt="" hidden>
-          <span id="photo-placeholder">📷 Foto aufnehmen oder auswählen</span>
+          <span id="photo-placeholder"><svg class="ico big"><use href="#i-camera"/></svg><br>Foto aufnehmen oder auswählen</span>
         </label>
         <label class="field">
           <span>Hinweis (optional)</span>
@@ -102,43 +124,81 @@
         <p class="muted" id="scan-note"></p>
         <div id="scan-items"></div>
         <div class="scan-total" id="scan-total"></div>
-        <label class="field">
-          <span>Mahlzeit</span>
-          <select id="scan-meal"></select>
-        </label>
         <button class="btn primary block" id="btn-scan-save">Zum Tag hinzufügen</button>
       </div>
     </section>
 
     <!-- TRAINING -->
-    <section class="view" id="view-training" data-view="training" hidden>
-      <div class="card">
-        <h2>Training erfassen</h2>
-        <form id="workout-form" class="form">
-          <label class="field">
-            <span>Aktivität</span>
-            <select id="wo-type" required></select>
-          </label>
-          <div class="row">
-            <label class="field">
-              <span>Dauer (Min.)</span>
-              <input type="number" id="wo-minutes" inputmode="numeric" min="1" max="600" value="30" required>
-            </label>
-            <label class="field">
-              <span>kcal</span>
-              <input type="number" id="wo-kcal" inputmode="numeric" min="0" max="5000" required>
-            </label>
+    <section class="view" data-view="training" hidden>
+      <div class="segmented big" role="tablist">
+        <button class="seg active" data-mode="strength">Krafttraining</button>
+        <button class="seg" data-mode="cardio">Cardio & andere</button>
+      </div>
+
+      <div data-mode-panel="strength">
+        <div class="card" id="strength-start">
+          <h2>Krafttraining</h2>
+          <p class="muted small">Starte ein Workout und trage Übung für Übung deine Sätze ein. Alles wird laufend gespeichert, auch wenn du die App zwischendurch schliesst.</p>
+          <button class="btn primary block" id="btn-start-workout">Workout starten</button>
+        </div>
+
+        <div id="strength-session" class="hidden">
+          <div class="card session-head">
+            <div class="card-head">
+              <h2>Workout läuft</h2>
+              <span class="badge live">LIVE</span>
+            </div>
+            <div class="session-stats" id="session-stats"></div>
+            <div class="row add-ex">
+              <select id="ex-select" aria-label="Übung wählen"></select>
+              <button class="btn primary" id="btn-add-ex">+ Übung</button>
+            </div>
+            <input type="text" id="ex-custom" class="hidden" placeholder="Name der eigenen Übung" maxlength="50">
           </div>
-          <p class="muted small" id="wo-hint">Geschätzt aus Aktivität, Dauer und deinem Gewicht. Du kannst den Wert überschreiben, z. B. mit dem Wert deiner Uhr.</p>
-          <button class="btn primary block" type="submit">Speichern</button>
-        </form>
+
+          <div id="session-exercises"></div>
+
+          <div class="card">
+            <div class="row">
+              <label class="field"><span>Dauer (Min.)</span><input type="number" id="st-minutes" inputmode="numeric" min="1" max="600" value="45"></label>
+              <label class="field"><span>kcal</span><input type="number" id="st-kcal" inputmode="numeric" min="0" max="5000"></label>
+            </div>
+            <div class="btn-row">
+              <button class="btn" id="btn-discard-workout">Verwerfen</button>
+              <button class="btn primary" id="btn-finish-workout">Beenden & speichern</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Rekorde</h2>
+          <ul class="list" id="records"></ul>
+        </div>
+      </div>
+
+      <div data-mode-panel="cardio" hidden>
+        <div class="card">
+          <h2>Cardio & andere</h2>
+          <form id="workout-form" class="form">
+            <label class="field">
+              <span>Aktivität</span>
+              <select id="wo-type" required></select>
+            </label>
+            <div class="row">
+              <label class="field"><span>Dauer (Min.)</span><input type="number" id="wo-minutes" inputmode="numeric" min="1" max="600" value="30" required></label>
+              <label class="field"><span>kcal</span><input type="number" id="wo-kcal" inputmode="numeric" min="0" max="5000" required></label>
+            </div>
+            <p class="muted small" id="wo-hint"></p>
+            <button class="btn primary block" type="submit">Speichern</button>
+          </form>
+        </div>
       </div>
 
       <div class="card">
         <h2>Gewicht</h2>
         <form id="weight-form" class="row align-end">
           <label class="field">
-            <span>Gewicht heute (kg)</span>
+            <span>Gewicht (kg)</span>
             <input type="number" id="weight-input" inputmode="decimal" step="0.1" min="25" max="350" required>
           </label>
           <button class="btn primary" type="submit">Eintragen</button>
@@ -153,7 +213,7 @@
     </section>
 
     <!-- PROFIL -->
-    <section class="view" id="view-profile" data-view="profile" hidden>
+    <section class="view" data-view="profile" hidden>
       <div class="card">
         <h2>Kcal-Rechner</h2>
         <form id="profile-form" class="form">
@@ -173,22 +233,27 @@
               <option value="1.375">Leicht aktiv (1–3× Sport/Woche)</option>
               <option value="1.55" selected>Mässig aktiv (3–5× Sport/Woche)</option>
               <option value="1.725">Sehr aktiv (6–7× Sport/Woche)</option>
-              <option value="1.9">Extrem aktiv (körperliche Arbeit + Sport)</option>
+              <option value="1.9">Extrem aktiv (Bau + Sport)</option>
             </select>
           </label>
           <label class="field">
             <span>Ziel</span>
             <select name="goal">
-              <option value="-500">Abnehmen (ca. 0.5 kg/Woche)</option>
-              <option value="-250">Langsam abnehmen (ca. 0.25 kg/Woche)</option>
+              <option value="-500">Abnehmen (−0.5 kg/Woche)</option>
+              <option value="-250">Langsam abnehmen (−0.25 kg/Wo.)</option>
               <option value="0" selected>Gewicht halten</option>
-              <option value="250">Langsam zunehmen / Muskelaufbau</option>
-              <option value="500">Zunehmen (ca. 0.5 kg/Woche)</option>
+              <option value="250">Muskelaufbau (+250 kcal)</option>
+              <option value="500">Zunehmen (+0.5 kg/Woche)</option>
             </select>
           </label>
           <div class="calc-result" id="calc-result"></div>
           <button class="btn primary block" type="submit">Speichern</button>
         </form>
+      </div>
+
+      <div class="card">
+        <h2>So sammelst du XP</h2>
+        <ul class="list compact" id="xp-rules"></ul>
       </div>
 
       <div class="card">
@@ -199,7 +264,7 @@
             <span>API-Schlüssel</span>
             <input type="password" id="api-key" autocomplete="off" placeholder="sk-ant-…">
           </label>
-          <div class="row">
+          <div class="btn-row">
             <button class="btn primary" type="submit">Speichern</button>
             <button class="btn" type="button" id="btn-key-clear">Entfernen</button>
           </div>
@@ -210,20 +275,28 @@
       <div class="card">
         <h2>Daten sichern</h2>
         <p class="muted small">Alle Einträge sind nur auf diesem iPhone gespeichert. Sichere sie ab und zu als Datei, z. B. in iCloud Drive.</p>
-        <div class="row">
+        <div class="btn-row">
           <button class="btn" id="btn-export">Exportieren</button>
           <label class="btn">Importieren<input type="file" id="import-input" accept="application/json,.json" hidden></label>
         </div>
         <p class="status" id="backup-status" role="status"></p>
       </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Versionen</h2>
+          <span class="badge" id="version-badge"></span>
+        </div>
+        <div id="changelog"></div>
+      </div>
     </section>
   </main>
 
   <nav class="tabbar" aria-label="Navigation">
-    <button data-tab="today" class="active"><span class="tab-icon">◎</span><span>Heute</span></button>
-    <button data-tab="scan"><span class="tab-icon">📷</span><span>Scanner</span></button>
-    <button data-tab="training"><span class="tab-icon">🏃</span><span>Training</span></button>
-    <button data-tab="profile"><span class="tab-icon">👤</span><span>Profil</span></button>
+    <button data-tab="today" class="active"><svg class="ico"><use href="#i-home"/></svg><span>Heute</span></button>
+    <button data-tab="scan"><svg class="ico"><use href="#i-camera"/></svg><span>Scanner</span></button>
+    <button data-tab="training"><svg class="ico"><use href="#i-dumbbell"/></svg><span>Training</span></button>
+    <button data-tab="profile"><svg class="ico"><use href="#i-user"/></svg><span>Profil</span></button>
   </nav>
 
   <!-- Dialog: Essen manuell hinzufügen / bearbeiten -->
@@ -231,7 +304,6 @@
     <form method="dialog" id="food-form" class="form">
       <h2 id="food-dialog-title">Essen hinzufügen</h2>
       <label class="field"><span>Name</span><input type="text" name="name" required maxlength="80" placeholder="z. B. Birchermüesli"></label>
-      <label class="field"><span>Mahlzeit</span><select name="meal"></select></label>
       <div class="row">
         <label class="field"><span>kcal</span><input type="number" name="kcal" inputmode="numeric" min="0" max="5000" required></label>
         <label class="field"><span>Protein (g)</span><input type="number" name="protein" inputmode="decimal" step="0.1" min="0" max="500"></label>

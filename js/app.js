@@ -1,35 +1,27 @@
 import * as store from './store.js';
-import { dailyTargets, ACTIVITIES, workoutKcal, sumFoods } from './calc.js';
+import {
+  dailyTargets, ACTIVITIES, EXERCISE_GROUPS, workoutKcal, strengthKcal, sumFoods,
+  workoutVolume, countSets, bestSet, isBetter, computeProgress, XP_RULES,
+} from './calc.js';
 import { prepareImage, analyzeFood } from './scanner.js';
-
-const MEALS = [
-  { id: 'breakfast', name: 'Frühstück' },
-  { id: 'lunch', name: 'Mittagessen' },
-  { id: 'dinner', name: 'Abendessen' },
-  { id: 'snack', name: 'Snacks' },
-];
+import { CHANGELOG, VERSION } from './version.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const fmt = n => Math.round(n).toLocaleString('de-CH');
+const fmtKg = n => (+n || 0).toLocaleString('de-CH', { maximumFractionDigits: 1 });
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const nowTime = () => new Date().toTimeString().slice(0, 5);
 
 const state = {
   date: new Date(),
   view: 'today',
+  trainingMode: 'strength',
   scan: null, // { base64, result }
 };
 
 const currentKey = () => store.dateKey(state.date);
 const isToday = () => currentKey() === store.dateKey();
-
-function defaultMeal() {
-  const h = new Date().getHours();
-  if (h < 10) return 'breakfast';
-  if (h < 15) return 'lunch';
-  if (h >= 17 && h < 22) return 'dinner';
-  return 'snack';
-}
 
 function currentWeight() {
   const weights = store.getWeights();
@@ -37,7 +29,21 @@ function currentWeight() {
   return store.getProfile()?.weight || 0;
 }
 
-/* ---------- Navigation ---------- */
+function baseTarget() {
+  const profile = store.getProfile();
+  return profile ? dailyTargets({ ...profile, weight: currentWeight() }) : null;
+}
+
+function progress() {
+  return computeProgress({
+    days: store.getAllDays(),
+    weights: store.getWeights(),
+    targetKcal: baseTarget()?.kcal || null,
+    todayKey: store.dateKey(),
+  });
+}
+
+/* ---------- Navigation & Feedback ---------- */
 
 function showView(view) {
   state.view = view;
@@ -47,12 +53,29 @@ function showView(view) {
   render();
 }
 
-function toast(msg) {
+const toastQueue = [];
+function toast(msg, kind = '') {
+  toastQueue.push({ msg, kind });
+  if (toastQueue.length === 1) nextToast();
+}
+function nextToast() {
+  const item = toastQueue[0];
+  if (!item) return;
   const el = $('#toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(toast.t);
-  toast.t = setTimeout(() => el.classList.remove('show'), 2200);
+  el.textContent = item.msg;
+  el.className = 'toast show ' + item.kind;
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => { toastQueue.shift(); nextToast(); }, 250);
+  }, item.kind ? 2600 : 1800);
+}
+
+/** Zeigt gewonnene XP und Level-Ups nach einer Aktion an. */
+function celebrate(before, msg) {
+  const after = progress();
+  const gained = after.xp - before.xp;
+  toast(gained > 0 ? `${msg}  +${gained} XP` : msg);
+  if (after.level > before.level) toast(`LEVEL UP! Du bist jetzt Level ${after.level}`, 'epic');
 }
 
 /* ---------- Rendering ---------- */
@@ -77,29 +100,34 @@ function renderDate() {
   $('#next-day').disabled = isToday();
 }
 
+function renderPlayer() {
+  const p = progress();
+  $('#lvl').textContent = p.level;
+  $('#xp-label').textContent = `${fmt(p.current)} / ${fmt(p.needed)} XP`;
+  $('#xp-fill').style.width = `${(p.current / p.needed) * 100}%`;
+  $('#streak').textContent = `🔥 ${p.streak} ${p.streak === 1 ? 'Tag' : 'Tage'}`;
+  $('#streak').classList.toggle('cold', p.streak === 0);
+}
+
 function renderToday() {
-  const profile = store.getProfile();
+  renderPlayer();
   const day = store.getDay(currentKey());
   const eaten = sumFoods(day.foods);
   const burned = day.workouts.reduce((s, w) => s + (+w.kcal || 0), 0);
-  const targets = profile ? dailyTargets({ ...profile, weight: currentWeight() }) : null;
+  const targets = baseTarget();
 
-  $('#setup-hint').classList.toggle('hidden', !!profile);
+  $('#setup-hint').classList.toggle('hidden', !!targets);
 
   const goal = targets ? targets.kcal + burned : 0;
   const remaining = goal - eaten.kcal;
-  $('#stat-target').textContent = targets ? fmt(targets.kcal) : '–';
-  $('#stat-eaten').textContent = fmt(eaten.kcal);
-  $('#stat-burned').textContent = burned ? '+' + fmt(burned) : '0';
-  $('#remaining-kcal').textContent = targets ? fmt(Math.abs(remaining)) : fmt(eaten.kcal);
-  $('#remaining-caption').textContent = !targets ? 'kcal gegessen' : remaining >= 0 ? 'kcal übrig' : 'kcal zu viel';
-
-  const ring = $('#ring-fill');
-  const circ = 2 * Math.PI * 52;
-  const pct = goal ? Math.min(eaten.kcal / goal, 1) : 0;
-  ring.style.strokeDasharray = `${circ}`;
-  ring.style.strokeDashoffset = `${circ * (1 - pct)}`;
-  ring.classList.toggle('over', targets && remaining < 0);
+  $('#kcal-eaten').textContent = fmt(eaten.kcal);
+  $('#kcal-target').textContent = targets ? fmt(goal) : '–';
+  const fill = $('#kcal-fill');
+  fill.style.width = goal ? `${Math.min(eaten.kcal / goal, 1) * 100}%` : '0%';
+  fill.classList.toggle('over', !!targets && remaining < 0);
+  $('#kcal-remaining').textContent = !targets ? '' : remaining >= 0 ? `${fmt(remaining)} kcal übrig` : `${fmt(-remaining)} kcal über dem Ziel`;
+  $('#kcal-remaining').className = targets && remaining < 0 ? 'neg' : 'pos';
+  $('#kcal-breakdown').textContent = targets && burned ? `Basis ${fmt(targets.kcal)} + Training ${fmt(burned)}` : '';
 
   const macros = [
     { key: 'protein', name: 'Protein', cls: 'm-protein' },
@@ -116,33 +144,26 @@ function renderToday() {
     </div>`;
   }).join('');
 
-  $('#meals').innerHTML = MEALS.map(meal => {
-    const foods = day.foods.filter(f => f.meal === meal.id);
-    const total = sumFoods(foods).kcal;
-    return `<div class="card">
-      <div class="card-head">
-        <h2>${meal.name}</h2>
-        <span class="muted">${fmt(total)} kcal</span>
-      </div>
-      <ul class="list">
-        ${foods.map(f => `<li><button class="list-item" data-food="${f.id}">
-          <span class="li-main">${esc(f.name)}</span>
-          <span class="li-sub">P ${fmt(f.protein || 0)} · K ${fmt(f.carbs || 0)} · F ${fmt(f.fat || 0)}</span>
-          <span class="li-value">${fmt(f.kcal)}</span>
-        </button></li>`).join('')}
-      </ul>
-      <button class="btn small ghost" data-add-meal="${meal.id}">+ Hinzufügen</button>
-    </div>`;
-  }).join('');
+  const foods = [...day.foods].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+  $('#food-count').textContent = foods.length ? `${foods.length} ${foods.length === 1 ? 'Eintrag' : 'Einträge'}` : '';
+  $('#food-list').innerHTML = foods.length
+    ? foods.map(f => `<li><button class="list-item" data-food="${f.id}">
+        <span class="li-main">${esc(f.name)}</span>
+        <span class="li-sub">${f.time ? f.time + ' · ' : ''}P ${fmt(f.protein || 0)} · K ${fmt(f.carbs || 0)} · F ${fmt(f.fat || 0)}</span>
+        <span class="li-value">${fmt(f.kcal)}</span>
+      </button></li>`).join('')
+    : '<li class="empty">Noch nichts eingetragen.</li>';
 
   $('#today-workouts').innerHTML = day.workouts.length
     ? day.workouts.map(w => `<li class="list-item static">
-        <span class="li-main">${esc(w.name)}</span>
-        <span class="li-sub">${fmt(w.minutes)} Min.</span>
+        <span class="li-main">${w.kind === 'strength' ? '🏋️ ' : ''}${esc(w.name)}</span>
+        <span class="li-sub">${w.kind === 'strength'
+          ? `${w.exercises.length} Übungen · ${countSets(w.exercises)} Sätze · ${fmt(workoutVolume(w.exercises))} kg · ${fmt(w.minutes)} Min.`
+          : `${fmt(w.minutes)} Min.`}</span>
         <span class="li-value">−${fmt(w.kcal)}</span>
         <button class="icon-btn small" data-del-workout="${w.id}" aria-label="Training löschen">✕</button>
       </li>`).join('')
-    : '<li class="empty">Noch kein Training erfasst.</li>';
+    : '<li class="empty">Noch kein Training. Zeit für Gains!</li>';
 }
 
 function renderScan() {
@@ -150,38 +171,171 @@ function renderScan() {
   $('#btn-analyze').disabled = !state.scan?.base64 || !store.getApiKey();
 }
 
+/* ---------- Training ---------- */
+
 function renderTraining() {
+  $$('.seg[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === state.trainingMode));
+  $$('[data-mode-panel]').forEach(p => { p.hidden = p.dataset.modePanel !== state.trainingMode; });
+
   const sel = $('#wo-type');
   if (!sel.options.length) {
     sel.innerHTML = ACTIVITIES.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
     updateWorkoutEstimate();
   }
-  const latest = store.getWeights().find(w => w.date === currentKey());
+  if (!$('#ex-select').options.length) {
+    $('#ex-select').innerHTML = EXERCISE_GROUPS.map(g =>
+      `<optgroup label="${g.group}">${g.names.map(n => `<option>${n}</option>`).join('')}</optgroup>`
+    ).join('') + '<optgroup label="Eigene"><option value="__custom">Eigene Übung …</option></optgroup>';
+  }
+
+  renderSession();
+  renderRecords();
+
+  const todays = store.getWeights().find(w => w.date === currentKey());
   $('#weight-input').placeholder = currentWeight() ? String(currentWeight()) : '';
-  if (latest) $('#weight-input').value = latest.kg;
+  $('#weight-input').value = todays ? todays.kg : '';
   renderWeightChart();
   renderWeekTable();
 }
 
+/** Letztes Mal, als eine Übung gemacht wurde (vor dem aktuellen Workout). */
+function lastPerformance(name) {
+  const days = store.getAllDays();
+  for (const key of Object.keys(days).sort().reverse()) {
+    for (const w of [...days[key].workouts].reverse()) {
+      if (w.kind !== 'strength') continue;
+      const ex = w.exercises.find(e => e.name === name);
+      if (ex && ex.sets.length) return { date: key, sets: ex.sets };
+    }
+  }
+  return null;
+}
+
+function summarizeSets(sets) {
+  const valid = sets.filter(s => +s.reps > 0);
+  if (!valid.length) return '';
+  const same = valid.every(s => s.reps == valid[0].reps && s.kg == valid[0].kg);
+  if (same) return `${valid.length} × ${valid[0].reps}${+valid[0].kg ? ' @ ' + fmtKg(valid[0].kg) + ' kg' : ''}`;
+  return valid.map(s => `${s.reps}${+s.kg ? '×' + fmtKg(s.kg) : ''}`).join(', ');
+}
+
+function renderSession() {
+  const draft = store.getDraft();
+  $('#strength-start').classList.toggle('hidden', !!draft);
+  $('#strength-session').classList.toggle('hidden', !draft);
+  if (!draft) return;
+
+  const records = progress().records;
+  $('#session-exercises').innerHTML = draft.exercises.length
+    ? draft.exercises.map((ex, i) => {
+      const last = lastPerformance(ex.name);
+      const rec = records[ex.name];
+      return `<div class="card exercise" data-ex="${i}">
+        <div class="card-head">
+          <h3>${esc(ex.name)}</h3>
+          <button class="icon-btn small" data-remove-ex="${i}" aria-label="Übung entfernen">✕</button>
+        </div>
+        <div class="ex-meta">
+          ${last ? `<span>Letztes Mal: <strong>${summarizeSets(last.sets)}</strong></span>` : '<span>Erstes Mal – leg los!</span>'}
+          ${rec ? `<span class="gold">🏆 ${fmtKg(rec.kg)} kg × ${rec.reps}</span>` : ''}
+        </div>
+        <div class="sets">
+          <div class="set-row head"><span>Satz</span><span>Wdh.</span><span>kg</span><span></span></div>
+          ${ex.sets.map((s, j) => `<div class="set-row">
+            <span class="set-no">${j + 1}</span>
+            <input type="number" inputmode="numeric" min="0" max="999" value="${s.reps ?? ''}" data-set="${i}:${j}:reps" aria-label="Wiederholungen Satz ${j + 1}">
+            <input type="number" inputmode="decimal" step="0.5" min="0" max="999" value="${s.kg ?? ''}" data-set="${i}:${j}:kg" aria-label="Gewicht Satz ${j + 1}">
+            <button class="icon-btn small" data-remove-set="${i}:${j}" aria-label="Satz entfernen">✕</button>
+          </div>`).join('')}
+        </div>
+        <button class="btn small ghost" data-add-set="${i}">+ Satz</button>
+      </div>`;
+    }).join('')
+    : '<div class="card empty-card">Wähle oben eine Übung und tippe auf «+ Übung».</div>';
+
+  // Läuft das Workout schon eine Weile, zählt die echte Zeit, sonst 45 Min. als Vorschlag.
+  const elapsed = Math.round((Date.now() - draft.startedAt) / 60000);
+  const minutes = draft.minutesEdited ? draft.minutes : elapsed >= 10 ? elapsed : 45;
+  $('#st-minutes').value = minutes;
+  $('#st-kcal').value = draft.kcalEdited ? draft.kcal : strengthKcal(minutes, currentWeight());
+  updateSessionStats();
+}
+
+function updateSessionStats() {
+  const draft = store.getDraft();
+  if (!draft) return;
+  $('#session-stats').innerHTML = `
+    <div><span class="stat-label">Übungen</span><span class="stat-value">${draft.exercises.length}</span></div>
+    <div><span class="stat-label">Sätze</span><span class="stat-value">${countSets(draft.exercises)}</span></div>
+    <div><span class="stat-label">Volumen</span><span class="stat-value">${fmt(workoutVolume(draft.exercises))} kg</span></div>`;
+}
+
+function updateDraft(fn, rerender = true) {
+  const draft = store.getDraft();
+  if (!draft) return;
+  fn(draft);
+  store.setDraft(draft);
+  if (rerender) renderSession(); else updateSessionStats();
+}
+
+function renderRecords() {
+  const recs = Object.entries(progress().records).sort((a, b) => a[0].localeCompare(b[0], 'de'));
+  $('#records').innerHTML = recs.length
+    ? recs.map(([name, r]) => `<li class="list-item static rec">
+        <span class="li-main">${esc(name)}</span>
+        <span class="li-sub">${new Date(r.date + 'T12:00:00').toLocaleDateString('de-CH')}</span>
+        <span class="li-value gold">${fmtKg(r.kg)} kg × ${r.reps}</span>
+      </li>`).join('')
+    : '<li class="empty">Noch keine Rekorde. Starte dein erstes Workout!</li>';
+}
+
+function finishWorkout() {
+  const draft = store.getDraft();
+  if (!draft) return;
+  const exercises = draft.exercises
+    .map(ex => ({ name: ex.name, sets: ex.sets.filter(s => +s.reps > 0).map(s => ({ reps: +s.reps, kg: +s.kg || 0 })) }))
+    .filter(ex => ex.sets.length);
+  if (!exercises.length) { toast('Trag mindestens einen Satz mit Wiederholungen ein.'); return; }
+
+  const before = progress();
+  const minutes = +$('#st-minutes').value || 45;
+  store.addWorkout(currentKey(), {
+    kind: 'strength',
+    name: 'Krafttraining',
+    minutes,
+    kcal: Math.round(+$('#st-kcal').value || 0),
+    exercises,
+  });
+  store.setDraft(null);
+
+  const after = progress();
+  celebrate(before, 'Workout gespeichert!');
+  for (const ex of exercises) {
+    const prev = before.records[ex.name];
+    const now = after.records[ex.name];
+    if (prev && isBetter(now, prev)) toast(`🏆 NEUER REKORD: ${ex.name} ${fmtKg(now.kg)} kg × ${now.reps}`, 'gold');
+  }
+  showView('today');
+}
+
 function renderWeekTable() {
-  const profile = store.getProfile();
+  const target = baseTarget()?.kcal;
   const rows = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
-    const key = store.dateKey(d);
-    const day = store.getDay(key);
+    const day = store.getDay(store.dateKey(d));
     rows.push({
       label: i === 0 ? 'Heute' : d.toLocaleDateString('de-CH', { weekday: 'short', day: 'numeric', month: 'numeric' }),
       eaten: sumFoods(day.foods).kcal,
       burned: day.workouts.reduce((s, w) => s + (+w.kcal || 0), 0),
+      strength: day.workouts.some(w => w.kind === 'strength'),
     });
   }
-  const target = profile ? dailyTargets({ ...profile, weight: currentWeight() }).kcal : null;
   $('#week-table').innerHTML = `<table class="table">
     <thead><tr><th>Tag</th><th>Gegessen</th><th>Training</th>${target ? '<th>Bilanz</th>' : ''}</tr></thead>
     <tbody>${rows.map(r => {
       const bal = target ? r.eaten - (target + r.burned) : 0;
-      return `<tr><td>${r.label}</td><td>${fmt(r.eaten)}</td><td>${r.burned ? fmt(r.burned) : '–'}</td>${
+      return `<tr><td>${r.label}</td><td>${r.eaten ? fmt(r.eaten) : '–'}</td><td>${r.burned ? (r.strength ? '🏋️ ' : '') + fmt(r.burned) : '–'}</td>${
         target ? `<td class="${r.eaten ? (bal > 0 ? 'neg' : 'pos') : 'muted'}">${r.eaten ? (bal > 0 ? '+' : '') + fmt(bal) : '–'}</td>` : ''}</tr>`;
     }).join('')}</tbody></table>`;
 }
@@ -209,8 +363,8 @@ function renderWeightChart() {
   const diff = last.kg - pts[0].kg;
 
   el.innerHTML = `
-    <p class="chart-summary"><strong>${last.kg.toLocaleString('de-CH')} kg</strong>
-      <span class="muted">${diff === 0 ? 'unverändert' : (diff > 0 ? '+' : '−') + Math.abs(diff).toLocaleString('de-CH', { maximumFractionDigits: 1 }) + ' kg'} seit ${fmtDate(t0)}</span></p>
+    <p class="chart-summary"><strong>${fmtKg(last.kg)} kg</strong>
+      <span class="muted">${diff === 0 ? 'unverändert' : (diff > 0 ? '+' : '−') + fmtKg(Math.abs(diff)) + ' kg'} seit ${fmtDate(t0)}</span></p>
     <svg viewBox="0 0 ${W} ${H}" class="line-chart" role="img" aria-label="Gewichtsverlauf von ${fmtDate(t0)} bis ${fmtDate(t1)}">
       ${ticks.map(k => `<line class="grid" x1="${pad.l}" x2="${W - pad.r}" y1="${y(k)}" y2="${y(k)}"/>
         <text class="axis" x="${pad.l - 6}" y="${y(k) + 4}" text-anchor="end">${Math.round(k)}</text>`).join('')}
@@ -234,7 +388,7 @@ function renderWeightChart() {
     cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); cross.setAttribute('visibility', 'visible');
     dot.setAttribute('cx', cx); dot.setAttribute('cy', cy); dot.setAttribute('visibility', 'visible');
     tip.hidden = false;
-    tip.innerHTML = `<strong>${v[best].toLocaleString('de-CH')} kg</strong><span>${fmtDate(t[best])}</span>`;
+    tip.innerHTML = `<strong>${fmtKg(v[best])} kg</strong><span>${fmtDate(t[best])}</span>`;
     const left = (cx / W) * rect.width;
     tip.style.left = Math.min(Math.max(left, 40), rect.width - 40) + 'px';
     tip.style.top = (cy / H) * rect.height - 8 + 'px';
@@ -244,6 +398,8 @@ function renderWeightChart() {
   svg.addEventListener('pointerdown', move);
   svg.addEventListener('pointerleave', leave);
 }
+
+/* ---------- Profil ---------- */
 
 function renderProfile() {
   const p = store.getProfile();
@@ -258,9 +414,24 @@ function renderProfile() {
   }
   form.dataset.filled = '1';
   updateCalcPreview();
+
   const key = store.getApiKey();
   $('#api-key').value = '';
   $('#api-key').placeholder = key ? 'Gespeichert: ' + key.slice(0, 10) + '…' : 'sk-ant-…';
+
+  $('#xp-rules').innerHTML = XP_RULES.map(([what, xp]) =>
+    `<li class="list-item static"><span class="li-main">${what}</span><span class="li-value xp">+${xp} XP</span></li>`).join('');
+
+  $('#version-badge').textContent = 'v' + VERSION;
+  $('#changelog').innerHTML = CHANGELOG.map((v, i) => `
+    <div class="release${i === 0 ? ' current' : ''}">
+      <div class="release-head">
+        <span class="release-ver">v${v.version}</span>
+        <span class="release-title">${esc(v.title)}</span>
+        <span class="muted small">${new Date(v.date + 'T12:00:00').toLocaleDateString('de-CH')}</span>
+      </div>
+      <ul>${v.changes.map(c => `<li>${esc(c)}</li>`).join('')}</ul>
+    </div>`).join('');
 }
 
 function readProfileForm() {
@@ -294,20 +465,17 @@ function updateCalcPreview() {
 
 let editing = null;
 
-function openFoodDialog({ meal, food } = {}) {
-  const dlg = $('#food-dialog');
+function openFoodDialog(food) {
   const f = $('#food-form');
-  f.meal.innerHTML = MEALS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
   editing = food?.id || null;
   $('#food-dialog-title').textContent = food ? 'Eintrag bearbeiten' : 'Essen hinzufügen';
   $('#btn-food-delete').classList.toggle('hidden', !food);
   f.name.value = food?.name || '';
-  f.meal.value = food?.meal || meal || defaultMeal();
   f.kcal.value = food?.kcal ?? '';
   f.protein.value = food?.protein ?? '';
   f.carbs.value = food?.carbs ?? '';
   f.fat.value = food?.fat ?? '';
-  dlg.showModal();
+  $('#food-dialog').showModal();
 }
 
 /* ---------- Events ---------- */
@@ -318,13 +486,10 @@ function bind() {
     const go = e.target.closest('[data-goto]');
     if (go) showView(go.dataset.goto);
 
-    const addMeal = e.target.closest('[data-add-meal]');
-    if (addMeal) openFoodDialog({ meal: addMeal.dataset.addMeal });
-
     const foodBtn = e.target.closest('[data-food]');
     if (foodBtn) {
       const food = store.getDay(currentKey()).foods.find(f => f.id === foodBtn.dataset.food);
-      if (food) openFoodDialog({ food });
+      if (food) openFoodDialog(food);
     }
 
     const delWo = e.target.closest('[data-del-workout]');
@@ -338,6 +503,7 @@ function bind() {
   $('#next-day').addEventListener('click', () => { if (!isToday()) { state.date.setDate(state.date.getDate() + 1); render(); } });
   $('#date-label').addEventListener('click', () => { state.date = new Date(); render(); });
 
+  // Essen
   $('#btn-add-food').addEventListener('click', () => openFoodDialog());
   $('#btn-food-cancel').addEventListener('click', () => $('#food-dialog').close());
   $('#btn-food-delete').addEventListener('click', () => {
@@ -351,15 +517,19 @@ function bind() {
     const f = e.target;
     const food = {
       name: f.name.value.trim(),
-      meal: f.meal.value,
       kcal: Math.round(+f.kcal.value || 0),
       protein: +f.protein.value || 0,
       carbs: +f.carbs.value || 0,
       fat: +f.fat.value || 0,
     };
-    if (editing) store.updateFood(currentKey(), editing, food);
-    else store.addFood(currentKey(), food);
-    toast(editing ? 'Gespeichert' : 'Hinzugefügt');
+    if (editing) {
+      store.updateFood(currentKey(), editing, food);
+      toast('Gespeichert');
+    } else {
+      const before = progress();
+      store.addFood(currentKey(), { ...food, time: nowTime() });
+      celebrate(before, 'Hinzugefügt');
+    }
     render();
   });
 
@@ -391,27 +561,98 @@ function bind() {
     renderProfile();
   });
 
-  // Training
+  // Training: Modus
+  $$('.seg[data-mode]').forEach(b => b.addEventListener('click', () => { state.trainingMode = b.dataset.mode; renderTraining(); }));
+
+  // Krafttraining
+  $('#btn-start-workout').addEventListener('click', () => {
+    store.setDraft({ startedAt: Date.now(), exercises: [] });
+    renderSession();
+  });
+  $('#ex-select').addEventListener('change', () => {
+    const custom = $('#ex-select').value === '__custom';
+    $('#ex-custom').classList.toggle('hidden', !custom);
+    if (custom) $('#ex-custom').focus();
+  });
+  $('#btn-add-ex').addEventListener('click', () => {
+    let name = $('#ex-select').value;
+    if (name === '__custom') {
+      name = $('#ex-custom').value.trim();
+      if (!name) { $('#ex-custom').focus(); return; }
+      $('#ex-custom').value = '';
+    }
+    const last = lastPerformance(name);
+    const sets = last ? last.sets.map(s => ({ reps: s.reps, kg: s.kg })) : [{ reps: '', kg: '' }];
+    updateDraft(d => d.exercises.push({ name, sets }));
+    const cards = $$('#session-exercises .exercise');
+    cards[cards.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+  $('#session-exercises').addEventListener('input', e => {
+    const ref = e.target.dataset.set;
+    if (!ref) return;
+    const [i, j, field] = ref.split(':');
+    updateDraft(d => { d.exercises[i].sets[j][field] = e.target.value === '' ? '' : +e.target.value; }, false);
+  });
+  $('#session-exercises').addEventListener('click', e => {
+    const addSet = e.target.closest('[data-add-set]');
+    if (addSet) {
+      updateDraft(d => {
+        const sets = d.exercises[addSet.dataset.addSet].sets;
+        const last = sets[sets.length - 1];
+        sets.push(last ? { ...last } : { reps: '', kg: '' });
+      });
+    }
+    const rmSet = e.target.closest('[data-remove-set]');
+    if (rmSet) {
+      const [i, j] = rmSet.dataset.removeSet.split(':').map(Number);
+      updateDraft(d => d.exercises[i].sets.splice(j, 1));
+    }
+    const rmEx = e.target.closest('[data-remove-ex]');
+    if (rmEx && confirm('Übung entfernen?')) {
+      updateDraft(d => d.exercises.splice(+rmEx.dataset.removeEx, 1));
+    }
+  });
+  $('#st-minutes').addEventListener('input', () => {
+    updateDraft(d => {
+      d.minutes = +$('#st-minutes').value || 0;
+      d.minutesEdited = true;
+      if (!d.kcalEdited) $('#st-kcal').value = strengthKcal(d.minutes, currentWeight());
+    }, false);
+  });
+  $('#st-kcal').addEventListener('input', () => {
+    updateDraft(d => { d.kcal = +$('#st-kcal').value || 0; d.kcalEdited = true; }, false);
+  });
+  $('#btn-finish-workout').addEventListener('click', finishWorkout);
+  $('#btn-discard-workout').addEventListener('click', () => {
+    if (confirm('Workout verwerfen? Die Einträge gehen verloren.')) { store.setDraft(null); renderSession(); }
+  });
+
+  // Cardio
   $('#wo-type').addEventListener('change', updateWorkoutEstimate);
   $('#wo-minutes').addEventListener('input', updateWorkoutEstimate);
   $('#workout-form').addEventListener('submit', e => {
     e.preventDefault();
     const a = ACTIVITIES.find(x => x.id === $('#wo-type').value);
+    const before = progress();
     store.addWorkout(currentKey(), {
+      kind: 'cardio',
       type: a.id,
       name: a.id === 'other' ? 'Training' : a.name,
       minutes: +$('#wo-minutes').value,
       kcal: Math.round(+$('#wo-kcal').value || 0),
     });
-    toast('Training gespeichert');
+    celebrate(before, 'Training gespeichert!');
     showView('today');
   });
+
+  // Gewicht
   $('#weight-form').addEventListener('submit', e => {
     e.preventDefault();
     const kg = Math.round(+$('#weight-input').value * 10) / 10;
     if (!kg) return;
+    const before = progress();
     store.setWeight(currentKey(), kg);
-    toast('Gewicht eingetragen');
+    celebrate(before, 'Gewicht eingetragen');
     render();
   });
 
@@ -475,7 +716,7 @@ function updateWorkoutEstimate() {
   $('#wo-hint').textContent = type === 'other'
     ? 'Gib die verbrannten kcal selbst ein, z. B. von deiner Uhr.'
     : currentWeight()
-      ? 'Geschätzt aus Aktivität, Dauer und deinem Gewicht. Du kannst den Wert überschreiben, z. B. mit dem Wert deiner Uhr.'
+      ? 'Geschätzt aus Aktivität, Dauer und deinem Gewicht. Du kannst den Wert überschreiben.'
       : 'Lege im Profil dein Gewicht fest, dann wird der Wert geschätzt.';
 }
 
@@ -526,8 +767,6 @@ function showScanResult(result) {
         <label class="field"><span>F (g)</span><input type="number" class="si-fat" inputmode="decimal" value="${Math.round(it.fat_g)}"></label>
       </div>
     </div>`).join('');
-  $('#scan-meal').innerHTML = MEALS.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
-  $('#scan-meal').value = defaultMeal();
   updateScanTotal();
   $('#scan-result').classList.remove('hidden');
   $('#scan-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -551,15 +790,16 @@ function updateScanTotal() {
 function saveScan() {
   const items = readScanItems();
   if (!items.length) return;
-  const meal = $('#scan-meal').value;
-  items.forEach(it => store.addFood(currentKey(), { ...it, meal, source: 'scan' }));
+  const before = progress();
+  const time = nowTime();
+  items.forEach(it => store.addFood(currentKey(), { ...it, time, source: 'scan' }));
   state.scan = null;
   $('#photo-input').value = '';
   $('#photo-preview').hidden = true;
   $('#photo-placeholder').hidden = false;
   $('#scan-hint').value = '';
   $('#scan-result').classList.add('hidden');
-  toast(`${items.length} Einträge hinzugefügt`);
+  celebrate(before, `${items.length} ${items.length === 1 ? 'Eintrag' : 'Einträge'} hinzugefügt`);
   showView('today');
 }
 

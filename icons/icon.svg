@@ -1,9 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#2f7d4f"/>
-  <circle cx="256" cy="272" r="150" fill="#f6f7f4"/>
-  <circle cx="392" cy="170" r="70" fill="#2f7d4f"/>
-  <circle cx="330" cy="140" r="36" fill="#2f7d4f"/>
-  <circle cx="420" cy="238" r="34" fill="#2f7d4f"/>
-  <path d="M256 160 C 262 120, 292 96, 326 92" stroke="#f6f7f4" stroke-width="16" fill="none" stroke-linecap="round"/>
-  <circle cx="256" cy="272" r="74" fill="none" stroke="#2f7d4f" stroke-width="14"/>
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22d3ee"/><stop offset="1" stop-color="#d946ef"/></linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="10" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+    <mask id="bite"><rect width="512" height="512" fill="#fff"/><circle cx="392" cy="170" r="70" fill="#000"/><circle cx="330" cy="140" r="36" fill="#000"/><circle cx="420" cy="238" r="34" fill="#000"/></mask>
+  </defs>
+  <rect width="512" height="512" fill="#080b14"/>
+  <g filter="url(#glow)">
+    <circle cx="256" cy="272" r="150" fill="none" stroke="url(#g)" stroke-width="26" mask="url(#bite)"/>
+    <path d="M256 140 C 262 112, 290 92, 322 88" stroke="#22d3ee" stroke-width="18" fill="none" stroke-linecap="round"/>
+    <text x="256" y="312" text-anchor="middle" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="120" fill="#e8ecff">B</text>
+  </g>
 </svg>

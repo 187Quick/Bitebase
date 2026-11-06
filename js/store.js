@@ -1,6 +1,7 @@
 // Speichert alle Daten lokal im Browser (localStorage) auf diesem Gerät.
 const DATA_KEY = 'bitebase:data:v1';
 const API_KEY_KEY = 'bitebase:apiKey';
+const DRAFT_KEY = 'bitebase:draft';
 
 function emptyData() {
   return { version: 1, profile: null, days: {}, weights: [] };
@@ -46,6 +47,8 @@ export function dateKey(d = new Date()) {
 export function getProfile() { return data.profile; }
 export function setProfile(profile) { data.profile = profile; save(); }
 
+export function getAllDays() { return data.days; }
+
 export function getDay(key) {
   return data.days[key] || { foods: [], workouts: [] };
 }
@@ -72,6 +75,17 @@ export function setWeight(key, kg) {
   data.weights = data.weights.filter(w => w.date !== key);
   data.weights.push({ date: key, kg });
   save();
+}
+
+/** Laufendes Krafttraining (Entwurf), damit nichts verloren geht, wenn die App geschlossen wird. */
+export function getDraft() {
+  try { return JSON.parse(safeGet(DRAFT_KEY)) || null; } catch { return null; }
+}
+export function setDraft(draft) {
+  try {
+    if (draft) localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    else localStorage.removeItem(DRAFT_KEY);
+  } catch { /* ignorieren */ }
 }
 
 export function getApiKey() { return safeGet(API_KEY_KEY) || ''; }

@@ -1,6 +1,6 @@
 // Offline-Unterstützung: App-Dateien werden zwischengespeichert.
-// Bei jeder Änderung der App die Versionsnummer erhöhen.
-const CACHE = 'bitebase-v1';
+// Bei jeder neuen Version anpassen (gleich wie in js/version.js).
+const CACHE = 'bitebase-1.1.0';
 const ASSETS = [
   './',
   'index.html',
@@ -10,6 +10,7 @@ const ASSETS = [
   'js/store.js',
   'js/calc.js',
   'js/scanner.js',
+  'js/version.js',
   'icons/icon-192.png',
   'icons/apple-touch-icon.png',
 ];

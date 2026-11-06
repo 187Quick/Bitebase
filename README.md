@@ -4,9 +4,10 @@ Persönliche Web-App fürs iPhone: Kalorien zählen, Tagesbedarf berechnen, Trai
 
 ## Funktionen
 
-- **Heute:** Kalorien-Ring (Ziel, gegessen, Training), Makros, Mahlzeiten, Trainings, Tage vor- und zurückblättern
+- **Heute:** Level, XP und Streak, Kalorien-Anzeige «gegessen / Ziel», Makros, Essensliste, Trainings, Tage vor- und zurückblättern
 - **Food-Scanner:** Foto vom Essen → die KI (Claude) schätzt Kalorien und Makros pro Komponente → anpassen → speichern
-- **Training:** Aktivität und Dauer erfassen; die kcal werden aus MET-Werten und deinem Gewicht geschätzt. Dazu ein Gewichtsverlauf und eine 7-Tage-Übersicht.
+- **Krafttraining:** Workout starten, Übungen mit Sätzen, Wiederholungen und Gewicht erfassen, «Letztes Mal»-Anzeige und persönliche Rekorde
+- **Cardio & andere:** Aktivität und Dauer erfassen; die kcal werden aus MET-Werten und deinem Gewicht geschätzt. Dazu ein Gewichtsverlauf und eine 7-Tage-Übersicht.
 - **Kcal-Rechner:** Grundumsatz (Mifflin-St Jeor), Gesamtumsatz und Tagesziel je nach Ziel, plus Makro-Ziele
 - **Sicherung:** Export und Import als JSON-Datei
 
@@ -31,7 +32,14 @@ Reines HTML, CSS und JavaScript ohne Build-Schritt, veröffentlicht über GitHub
 - `js/calc.js`: Berechnungen
 - `js/scanner.js`: Food-Scanner (Claude-API)
 - `js/vendor/anthropic-sdk.js`: offizielles Anthropic-SDK 1.3.0, gebündelt (Apache-2.0)
-- `sw.js`: Offline-Unterstützung. Bei Änderungen die Versionsnummer `CACHE` erhöhen.
+- `js/version.js`: Versionsliste (siehe auch `CHANGELOG.md`)
+- `sw.js`: Offline-Unterstützung
+
+## Neue Version veröffentlichen
+
+1. Eintrag oben in `js/version.js` und `CHANGELOG.md` ergänzen.
+2. `CACHE` in `sw.js` auf die neue Version setzen.
+3. Commit mit der Version im Titel (z. B. `v1.2.0: …`), Tag setzen (`git tag v1.2.0`) und mit `git push --tags` hochladen.
 
 Lokal testen:
 
