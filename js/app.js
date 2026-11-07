@@ -6,6 +6,7 @@ import {
 } from './calc.js';
 import { prepareImage, analyzeFood } from './scanner.js';
 import { CHANGELOG, VERSION } from './version.js';
+import { exerciseImages } from './exercise-images.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -223,6 +224,13 @@ function setsFor(name, fallback) {
   return fallback;
 }
 
+/** Bild einer Übung: Start- und Endposition im Wechsel. Ohne Bild ein Platzhalter. */
+function exThumb(name, cls = '') {
+  const imgs = exerciseImages(name);
+  if (!imgs) return `<div class="ex-img none ${cls}"><svg class="ico"><use href="#i-dumbbell"/></svg></div>`;
+  return `<div class="ex-img ${cls}"><img src="${imgs[0]}" alt="" loading="lazy"><img src="${imgs[1]}" alt="" loading="lazy" class="alt"></div>`;
+}
+
 const equipOf = name => EXERCISES.find(e => e.name === name)?.equip || 'Eigene';
 
 /** Bearbeitungsliste für Übungen (laufendes Workout und Vorlagen). */
@@ -238,9 +246,12 @@ function exerciseEditorHTML(exercises, { live }) {
         <span class="equip">${esc(equipOf(ex.name))}</span>
         <button class="icon-btn small" data-remove-ex="${i}" aria-label="Übung entfernen">✕</button>
       </div>
-      <div class="ex-meta">
-        ${last ? `<span>Letztes Mal: <strong>${summarizeSets(last.sets)}</strong></span>` : '<span>Noch nie gemacht</span>'}
-        ${rec ? `<span class="gold">🏆 ${fmtKg(rec.kg)} kg × ${rec.reps}</span>` : ''}
+      <div class="ex-top">
+        ${exThumb(ex.name, 'big')}
+        <div class="ex-meta">
+          ${last ? `<span>Letztes Mal:<br><strong>${summarizeSets(last.sets)}</strong></span>` : '<span>Noch nie gemacht</span>'}
+          ${rec ? `<span class="gold">🏆 Rekord: ${fmtKg(rec.kg)} kg × ${rec.reps}</span>` : ''}
+        </div>
       </div>
       <div class="sets">
         <div class="set-row head"><span>Satz</span><span>Wdh.</span><span>kg</span><span></span></div>
@@ -349,7 +360,8 @@ function renderPicker() {
   $('#picker-list').innerHTML =
     items.map(e => {
       const rec = records[e.name];
-      return `<li><button class="list-item" data-pick-name="${esc(e.name)}">
+      return `<li><button class="list-item with-img" data-pick-name="${esc(e.name)}">
+        ${exThumb(e.name)}
         <span class="li-main">${esc(e.name)}</span>
         <span class="li-sub">${e.group} · ${e.equip}</span>
         <span class="li-value gold small-val">${rec ? '🏆 ' + fmtKg(rec.kg) + ' kg' : ''}</span>
@@ -363,14 +375,21 @@ function renderPicker() {
 
 function renderPlans() {
   const plans = store.getTemplates();
+  $('#plan-count').textContent = plans.length ? `${plans.length}` : '';
   $('#plan-list').innerHTML = plans.length
-    ? plans.map(t => `<li class="list-item static plan">
-        <span class="li-main">${esc(t.name)}</span>
-        <span class="li-sub">${t.exercises.length} Übungen · ${esc(t.exercises.slice(0, 3).map(e => e.name).join(', '))}${t.exercises.length > 3 ? ' …' : ''}</span>
-        <button class="btn small" data-edit-plan="${t.id}">Bearbeiten</button>
-        <button class="btn small primary" data-start-plan="${t.id}">▶ Start</button>
-      </li>`).join('')
-    : '<li class="empty">Noch keine Workouts gespeichert. Erstelle eines mit «+ Neu», z. B. «Push Day» mit Bankdrücken, Schulterpresse und Trizepsdrücken.</li>';
+    ? plans.map(t => `<div class="plan-tile">
+        <div class="plan-imgs">${t.exercises.slice(0, 4).map(ex => exThumb(ex.name, 'mini')).join('')}</div>
+        <div class="plan-name-row">
+          <span class="plan-name">${esc(t.name)}</span>
+          <button class="icon-btn small" data-rename-plan="${t.id}" aria-label="Umbenennen">✎</button>
+        </div>
+        <span class="muted small">${t.exercises.length} Übungen · ${esc(t.exercises.slice(0, 3).map(e => e.name).join(', '))}${t.exercises.length > 3 ? ' …' : ''}</span>
+        <div class="btn-row">
+          <button class="btn small" data-edit-plan="${t.id}">Bearbeiten</button>
+          <button class="btn small primary" data-start-plan="${t.id}">▶ Start</button>
+        </div>
+      </div>`).join('')
+    : '<p class="empty">Noch keine Workouts gespeichert. Tippe auf «+ Workout erstellen», gib ihm einen Namen (z. B. «Push Day») und wähle deine Übungen.</p>';
 }
 
 function openPlanEditor(tpl) {
@@ -818,6 +837,12 @@ function bind() {
     if (start) startWorkout(store.getTemplates().find(t => t.id === start.dataset.startPlan));
     const edit = e.target.closest('[data-edit-plan]');
     if (edit) openPlanEditor(store.getTemplates().find(t => t.id === edit.dataset.editPlan));
+    const ren = e.target.closest('[data-rename-plan]');
+    if (ren) {
+      const tpl = store.getTemplates().find(t => t.id === ren.dataset.renamePlan);
+      const name = tpl && prompt('Neuer Name für das Workout:', tpl.name);
+      if (name && name.trim()) { store.saveTemplate({ ...tpl, name: name.trim() }); renderPlans(); toast('Umbenannt'); }
+    }
   });
   bindEditor('session');
   bindEditor('plan');

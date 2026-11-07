@@ -3,6 +3,11 @@
 Jede Veröffentlichung bekommt eine Versionsnummer und einen Git-Tag (z. B. `v1.1.0`).
 Die gleiche Liste ist in der App unter **Profil → Versionen** zu sehen (`js/version.js`).
 
+## v1.3.0 – Bilder & Workouts (2026-11-07)
+- Bilder zu jeder Übung: Person am Gerät, Start- und Endposition im Wechsel (Free Exercise DB, Public Domain)
+- Neuer Bereich «Gespeicherte Workouts» zwischen «Meine Workouts» und «Rekorde»
+- Workouts direkt umbenennen
+
 ## v1.2.0 – Gym Upgrade (2026-11-07)
 - Über 80 bekannte Gym-Geräte und Übungen mit Suche (z. B. Preacher Curls, Beinpresse, Latzug)
 - Eigene Workouts zusammenstellen, speichern und mit einem Tipp starten

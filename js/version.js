@@ -3,6 +3,16 @@
 // CHANGELOG.md ergänzen und den Git-Tag (z. B. v1.2.0) setzen.
 export const CHANGELOG = [
   {
+    version: '1.3.0',
+    date: '2026-11-07',
+    title: 'Bilder & Workouts',
+    changes: [
+      'Bilder zu jeder Übung: Person am Gerät, Start- und Endposition im Wechsel',
+      'Neuer Bereich «Gespeicherte Workouts» zwischen «Meine Workouts» und «Rekorde»',
+      'Workouts direkt umbenennen',
+    ],
+  },
+  {
     version: '1.2.0',
     date: '2026-11-07',
     title: 'Gym Upgrade',

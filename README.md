@@ -33,6 +33,7 @@ Reines HTML, CSS und JavaScript ohne Build-Schritt, veröffentlicht über GitHub
 - `js/calc.js`: Berechnungen
 - `js/scanner.js`: Food-Scanner (Claude-API)
 - `js/vendor/anthropic-sdk.js`: offizielles Anthropic-SDK 1.3.0, gebündelt (Apache-2.0)
+- `js/exercise-images.js`, `images/exercises/`: Übungsbilder aus der [Free Exercise DB](https://github.com/yuhonas/free-exercise-db) (Public Domain)
 - `js/version.js`: Versionsliste (siehe auch `CHANGELOG.md`)
 - `sw.js`: Offline-Unterstützung
 

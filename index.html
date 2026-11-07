@@ -138,12 +138,20 @@
       <div data-mode-panel="strength">
         <div id="strength-start">
           <div class="card">
-            <div class="card-head">
-              <h2>Meine Workouts</h2>
-              <button class="btn small" id="btn-new-plan">+ Neu</button>
+            <h2>Meine Workouts</h2>
+            <p class="muted small">Stelle dein eigenes Workout aus Übungen zusammen, gib ihm einen Namen und starte es später mit einem Tipp.</p>
+            <div class="btn-row">
+              <button class="btn primary" id="btn-new-plan">+ Workout erstellen</button>
+              <button class="btn" id="btn-start-workout">Freies Training</button>
             </div>
-            <ul class="list" id="plan-list"></ul>
-            <button class="btn block" id="btn-start-workout">Freies Workout starten</button>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h2>Gespeicherte Workouts</h2>
+              <span class="muted small" id="plan-count"></span>
+            </div>
+            <div class="plan-grid" id="plan-list"></div>
           </div>
         </div>
 
@@ -347,6 +355,7 @@
     <input type="search" id="picker-search" placeholder="Suchen, z. B. Preacher Curls" autocomplete="off">
     <div class="chips" id="picker-chips"></div>
     <ul class="list picker-list" id="picker-list"></ul>
+    <p class="muted tiny center">Übungsbilder: Free Exercise DB (Public Domain)</p>
   </dialog>
 
   <!-- Dialog: Workout erstellen / bearbeiten -->
@@ -355,7 +364,7 @@
       <h2 id="plan-title">Workout erstellen</h2>
       <button class="icon-btn small" id="btn-plan-close" aria-label="Schliessen">✕</button>
     </div>
-    <label class="field"><span>Name</span><input type="text" id="plan-name" maxlength="40" placeholder="z. B. Push Day, Oberkörper, Beine"></label>
+    <label class="field"><span>Name des Workouts</span><input type="text" id="plan-name" maxlength="40" placeholder="z. B. Push Day, Oberkörper, Beine"></label>
     <div id="plan-exercises"></div>
     <button class="btn block" data-pick="plan">+ Übung hinzufügen</button>
     <div class="btn-row mt">
