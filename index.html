@@ -136,24 +136,25 @@
       </div>
 
       <div data-mode-panel="strength">
-        <div class="card" id="strength-start">
-          <h2>Krafttraining</h2>
-          <p class="muted small">Starte ein Workout und trage Übung für Übung deine Sätze ein. Alles wird laufend gespeichert, auch wenn du die App zwischendurch schliesst.</p>
-          <button class="btn primary block" id="btn-start-workout">Workout starten</button>
+        <div id="strength-start">
+          <div class="card">
+            <div class="card-head">
+              <h2>Meine Workouts</h2>
+              <button class="btn small" id="btn-new-plan">+ Neu</button>
+            </div>
+            <ul class="list" id="plan-list"></ul>
+            <button class="btn block" id="btn-start-workout">Freies Workout starten</button>
+          </div>
         </div>
 
         <div id="strength-session" class="hidden">
           <div class="card session-head">
             <div class="card-head">
-              <h2>Workout läuft</h2>
+              <h2 id="session-title">Workout läuft</h2>
               <span class="badge live">LIVE</span>
             </div>
             <div class="session-stats" id="session-stats"></div>
-            <div class="row add-ex">
-              <select id="ex-select" aria-label="Übung wählen"></select>
-              <button class="btn primary" id="btn-add-ex">+ Übung</button>
-            </div>
-            <input type="text" id="ex-custom" class="hidden" placeholder="Name der eigenen Übung" maxlength="50">
+            <button class="btn primary block" data-pick="session">+ Übung hinzufügen</button>
           </div>
 
           <div id="session-exercises"></div>
@@ -163,9 +164,10 @@
               <label class="field"><span>Dauer (Min.)</span><input type="number" id="st-minutes" inputmode="numeric" min="1" max="600" value="45"></label>
               <label class="field"><span>kcal</span><input type="number" id="st-kcal" inputmode="numeric" min="0" max="5000"></label>
             </div>
-            <div class="btn-row">
-              <button class="btn" id="btn-discard-workout">Verwerfen</button>
-              <button class="btn primary" id="btn-finish-workout">Beenden & speichern</button>
+            <button class="btn primary block" id="btn-finish-workout">Beenden & speichern</button>
+            <div class="btn-row mt">
+              <button class="btn small" id="btn-save-as-plan">Als Workout speichern</button>
+              <button class="btn small" id="btn-discard-workout">Verwerfen</button>
             </div>
           </div>
         </div>
@@ -204,6 +206,21 @@
           <button class="btn primary" type="submit">Eintragen</button>
         </form>
         <div class="chart" id="weight-chart"></div>
+      </div>
+
+      <div class="card quest">
+        <div class="card-head">
+          <h2>Zielgewicht</h2>
+          <span class="badge" id="quest-badge">QUEST</span>
+        </div>
+        <form id="target-form" class="row align-end">
+          <label class="field">
+            <span>Mein Zielgewicht (kg)</span>
+            <input type="number" id="target-input" inputmode="decimal" step="0.1" min="30" max="350" required>
+          </label>
+          <button class="btn primary" type="submit">Setzen</button>
+        </form>
+        <div id="quest"></div>
       </div>
 
       <div class="card">
@@ -319,6 +336,32 @@
         <button class="btn primary" type="submit">Speichern</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Dialog: Übung wählen -->
+  <dialog id="picker-dialog" class="sheet">
+    <div class="sheet-head">
+      <h2>Übung wählen</h2>
+      <button class="icon-btn small" id="btn-picker-close" aria-label="Schliessen">✕</button>
+    </div>
+    <input type="search" id="picker-search" placeholder="Suchen, z. B. Preacher Curls" autocomplete="off">
+    <div class="chips" id="picker-chips"></div>
+    <ul class="list picker-list" id="picker-list"></ul>
+  </dialog>
+
+  <!-- Dialog: Workout erstellen / bearbeiten -->
+  <dialog id="plan-dialog" class="sheet">
+    <div class="sheet-head">
+      <h2 id="plan-title">Workout erstellen</h2>
+      <button class="icon-btn small" id="btn-plan-close" aria-label="Schliessen">✕</button>
+    </div>
+    <label class="field"><span>Name</span><input type="text" id="plan-name" maxlength="40" placeholder="z. B. Push Day, Oberkörper, Beine"></label>
+    <div id="plan-exercises"></div>
+    <button class="btn block" data-pick="plan">+ Übung hinzufügen</button>
+    <div class="btn-row mt">
+      <button class="btn danger hidden" id="btn-plan-delete">Löschen</button>
+      <button class="btn primary" id="btn-plan-save">Speichern</button>
+    </div>
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>

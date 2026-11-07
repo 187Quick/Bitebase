@@ -4,7 +4,7 @@ const API_KEY_KEY = 'bitebase:apiKey';
 const DRAFT_KEY = 'bitebase:draft';
 
 function emptyData() {
-  return { version: 1, profile: null, days: {}, weights: [] };
+  return { version: 1, profile: null, days: {}, weights: [], templates: [], targetWeight: null };
 }
 
 function safeGet(key) {
@@ -77,6 +77,23 @@ export function setWeight(key, kg) {
   save();
 }
 
+/* Gespeicherte Workouts (Vorlagen) */
+export function getTemplates() { return data.templates || []; }
+export function saveTemplate(tpl) {
+  data.templates = data.templates || [];
+  const i = data.templates.findIndex(t => t.id === tpl.id);
+  if (i >= 0) data.templates[i] = tpl;
+  else data.templates.push({ ...tpl, id: tpl.id || uid() });
+  save();
+}
+export function removeTemplate(id) {
+  data.templates = (data.templates || []).filter(t => t.id !== id);
+  save();
+}
+
+export function getTargetWeight() { return data.targetWeight || null; }
+export function setTargetWeight(kg) { data.targetWeight = kg || null; save(); }
+
 /** Laufendes Krafttraining (Entwurf), damit nichts verloren geht, wenn die App geschlossen wird. */
 export function getDraft() {
   try { return JSON.parse(safeGet(DRAFT_KEY)) || null; } catch { return null; }
@@ -107,6 +124,13 @@ export function importJson(text) {
   if (!parsed || typeof parsed !== 'object' || typeof parsed.days !== 'object' || !Array.isArray(parsed.weights)) {
     throw new Error('Keine gültige Bitebase-Sicherung.');
   }
-  data = { version: 1, profile: parsed.profile ?? null, days: parsed.days, weights: parsed.weights };
+  data = {
+    version: 1,
+    profile: parsed.profile ?? null,
+    days: parsed.days,
+    weights: parsed.weights,
+    templates: Array.isArray(parsed.templates) ? parsed.templates : [],
+    targetWeight: parsed.targetWeight ?? null,
+  };
   save();
 }

@@ -20,14 +20,48 @@ export function dailyTargets(profile) {
 
 /* ---------- Krafttraining ---------- */
 
-export const EXERCISE_GROUPS = [
-  { group: 'Brust', names: ['Bankdrücken', 'Schrägbankdrücken', 'Kurzhantel-Bankdrücken', 'Butterfly', 'Dips', 'Liegestütze'] },
-  { group: 'Rücken', names: ['Kreuzheben', 'Klimmzüge', 'Langhantelrudern', 'Latziehen', 'Kabelrudern', 'Kurzhantelrudern'] },
-  { group: 'Beine', names: ['Kniebeugen', 'Beinpresse', 'Ausfallschritte', 'Rumänisches Kreuzheben', 'Beinstrecker', 'Beinbeuger', 'Hip Thrust', 'Wadenheben'] },
-  { group: 'Schultern', names: ['Schulterdrücken', 'Kurzhantel-Schulterdrücken', 'Seitheben', 'Face Pulls', 'Reverse Butterfly'] },
-  { group: 'Arme', names: ['Bizeps-Curls', 'Hammer-Curls', 'Trizepsdrücken (Kabel)', 'French Press', 'Enge Liegestütze'] },
-  { group: 'Core', names: ['Plank (Sekunden)', 'Crunches', 'Beinheben', 'Russian Twists'] },
+// Übungskatalog: bekannte Geräte und Übungen im Gym.
+// equip: Maschine, Kabel, Langhantel, Kurzhantel, Körpergewicht
+const E = (group, equip, names) => names.map(name => ({ name, group, equip }));
+export const EXERCISES = [
+  ...E('Brust', 'Maschine', ['Brustpresse', 'Schrägbank-Brustpresse', 'Butterfly-Maschine', 'Smith-Machine Bankdrücken']),
+  ...E('Brust', 'Langhantel', ['Bankdrücken', 'Schrägbankdrücken']),
+  ...E('Brust', 'Kurzhantel', ['Kurzhantel-Bankdrücken', 'Kurzhantel-Schrägbankdrücken', 'Kurzhantel-Fliegende']),
+  ...E('Brust', 'Kabel', ['Kabel-Crossover']),
+  ...E('Brust', 'Körpergewicht', ['Dips', 'Liegestütze']),
+
+  ...E('Rücken', 'Maschine', ['Latzug-Maschine', 'Rudermaschine', 'Assistierte Klimmzüge', 'Rückenstrecker', 'Reverse Butterfly']),
+  ...E('Rücken', 'Kabel', ['Latzug am Kabel', 'Latzug eng', 'Rudern am Kabel', 'Face Pulls', 'Pullover am Kabel']),
+  ...E('Rücken', 'Langhantel', ['Kreuzheben', 'Langhantelrudern', 'T-Bar-Rudern']),
+  ...E('Rücken', 'Kurzhantel', ['Kurzhantelrudern', 'Shrugs']),
+  ...E('Rücken', 'Körpergewicht', ['Klimmzüge', 'Hyperextensions']),
+
+  ...E('Beine', 'Maschine', ['Beinpresse', 'Hackenschmidt', 'Smith-Machine Kniebeugen', 'Beinstrecker', 'Beinbeuger liegend', 'Beinbeuger sitzend', 'Abduktoren-Maschine', 'Adduktoren-Maschine', 'Wadenheben stehend', 'Wadenheben sitzend', 'Glute-Maschine']),
+  ...E('Beine', 'Langhantel', ['Kniebeugen', 'Rumänisches Kreuzheben', 'Hip Thrust']),
+  ...E('Beine', 'Kurzhantel', ['Ausfallschritte', 'Bulgarian Split Squats', 'Goblet Squats']),
+  ...E('Beine', 'Kabel', ['Glute Kickback am Kabel']),
+
+  ...E('Schultern', 'Maschine', ['Schulterpresse', 'Seitheben-Maschine']),
+  ...E('Schultern', 'Langhantel', ['Military Press', 'Aufrechtes Rudern']),
+  ...E('Schultern', 'Kurzhantel', ['Kurzhantel-Schulterdrücken', 'Arnold Press', 'Seitheben', 'Frontheben']),
+  ...E('Schultern', 'Kabel', ['Seitheben am Kabel']),
+
+  ...E('Bizeps', 'Maschine', ['Preacher Curls (Scottbank)', 'Bizeps-Maschine']),
+  ...E('Bizeps', 'Langhantel', ['Langhantel-Curls', 'SZ-Curls']),
+  ...E('Bizeps', 'Kurzhantel', ['Kurzhantel-Curls', 'Hammer-Curls', 'Konzentrationscurls', 'Schrägbank-Curls']),
+  ...E('Bizeps', 'Kabel', ['Kabel-Curls']),
+
+  ...E('Trizeps', 'Maschine', ['Trizeps-Maschine', 'Dip-Maschine']),
+  ...E('Trizeps', 'Kabel', ['Trizepsdrücken (Seil)', 'Trizepsdrücken (Stange)', 'Überkopf-Trizeps am Kabel']),
+  ...E('Trizeps', 'Langhantel', ['Enges Bankdrücken', 'French Press (SZ)']),
+  ...E('Trizeps', 'Kurzhantel', ['Kickbacks', 'Überkopf-Trizeps (Kurzhantel)']),
+
+  ...E('Bauch', 'Maschine', ['Bauchmaschine', 'Rotationsmaschine']),
+  ...E('Bauch', 'Kabel', ['Crunches am Kabel']),
+  ...E('Bauch', 'Körpergewicht', ['Crunches', 'Beinheben hängend', 'Plank (Sekunden)', 'Russian Twists', 'Ab Roller']),
 ];
+
+export const EXERCISE_GROUP_NAMES = ['Brust', 'Rücken', 'Beine', 'Schultern', 'Bizeps', 'Trizeps', 'Bauch'];
 
 /** kcal für Krafttraining: MET 5 (mittlere Intensität). */
 export function strengthKcal(minutes, weightKg) {
@@ -90,6 +124,36 @@ export function sumFoods(foods) {
     carbs: acc.carbs + (+f.carbs || 0),
     fat: acc.fat + (+f.fat || 0),
   }), { kcal: 0, protein: 0, carbs: 0, fat: 0 });
+}
+
+/* ---------- Zielgewicht ---------- */
+
+const KCAL_PER_KG = 7700;
+
+/** Wöchentliche Gewichtsänderung, die sich aus dem kcal-Ziel ergibt (kg/Woche). */
+export function plannedRate(goalKcal) {
+  return (goalKcal * 7) / KCAL_PER_KG;
+}
+
+/** Tatsächlicher Trend (kg/Woche) per linearer Regression, ab 14 Tagen und 3 Einträgen. */
+export function actualRate(weights) {
+  if (weights.length < 3) return null;
+  const pts = weights.map(w => ({ x: new Date(w.date + 'T12:00:00').getTime() / 86400000, y: w.kg }));
+  const span = pts[pts.length - 1].x - pts[0].x;
+  if (span < 14) return null;
+  const mx = pts.reduce((s, p) => s + p.x, 0) / pts.length;
+  const my = pts.reduce((s, p) => s + p.y, 0) / pts.length;
+  const num = pts.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0);
+  const den = pts.reduce((s, p) => s + (p.x - mx) ** 2, 0);
+  return den ? (num / den) * 7 : null;
+}
+
+/** Wochen bis zum Ziel bei gegebener Rate, oder null wenn die Richtung nicht passt. */
+export function weeksToGoal(current, target, rate) {
+  const diff = target - current;
+  if (Math.abs(diff) < 0.05) return 0;
+  if (!rate || Math.sign(rate) !== Math.sign(diff) || Math.abs(rate) < 0.02) return null;
+  return diff / rate;
 }
 
 /* ---------- Gamification ---------- */

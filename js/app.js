@@ -1,7 +1,8 @@
 import * as store from './store.js';
 import {
-  dailyTargets, ACTIVITIES, EXERCISE_GROUPS, workoutKcal, strengthKcal, sumFoods,
+  dailyTargets, ACTIVITIES, EXERCISES, EXERCISE_GROUP_NAMES, workoutKcal, strengthKcal, sumFoods,
   workoutVolume, countSets, bestSet, isBetter, computeProgress, XP_RULES,
+  plannedRate, actualRate, weeksToGoal,
 } from './calc.js';
 import { prepareImage, analyzeFood } from './scanner.js';
 import { CHANGELOG, VERSION } from './version.js';
@@ -182,12 +183,8 @@ function renderTraining() {
     sel.innerHTML = ACTIVITIES.map(a => `<option value="${a.id}">${a.name}</option>`).join('');
     updateWorkoutEstimate();
   }
-  if (!$('#ex-select').options.length) {
-    $('#ex-select').innerHTML = EXERCISE_GROUPS.map(g =>
-      `<optgroup label="${g.group}">${g.names.map(n => `<option>${n}</option>`).join('')}</optgroup>`
-    ).join('') + '<optgroup label="Eigene"><option value="__custom">Eigene Übung …</option></optgroup>';
-  }
 
+  renderPlans();
   renderSession();
   renderRecords();
 
@@ -195,10 +192,11 @@ function renderTraining() {
   $('#weight-input').placeholder = currentWeight() ? String(currentWeight()) : '';
   $('#weight-input').value = todays ? todays.kg : '';
   renderWeightChart();
+  renderQuest();
   renderWeekTable();
 }
 
-/** Letztes Mal, als eine Übung gemacht wurde (vor dem aktuellen Workout). */
+/** Letztes Mal, als eine Übung gemacht wurde. */
 function lastPerformance(name) {
   const days = store.getAllDays();
   for (const key of Object.keys(days).sort().reverse()) {
@@ -213,11 +211,205 @@ function lastPerformance(name) {
 
 function summarizeSets(sets) {
   const valid = sets.filter(s => +s.reps > 0);
-  if (!valid.length) return '';
+  if (!valid.length) return '–';
   const same = valid.every(s => s.reps == valid[0].reps && s.kg == valid[0].kg);
   if (same) return `${valid.length} × ${valid[0].reps}${+valid[0].kg ? ' @ ' + fmtKg(valid[0].kg) + ' kg' : ''}`;
   return valid.map(s => `${s.reps}${+s.kg ? '×' + fmtKg(s.kg) : ''}`).join(', ');
 }
+
+function setsFor(name, fallback) {
+  const last = lastPerformance(name);
+  if (last) return last.sets.map(s => ({ reps: s.reps, kg: s.kg }));
+  return fallback;
+}
+
+const equipOf = name => EXERCISES.find(e => e.name === name)?.equip || 'Eigene';
+
+/** Bearbeitungsliste für Übungen (laufendes Workout und Vorlagen). */
+function exerciseEditorHTML(exercises, { live }) {
+  if (!exercises.length) return '<div class="card empty-card">Noch keine Übung. Tippe auf «+ Übung hinzufügen».</div>';
+  const records = progress().records;
+  return exercises.map((ex, i) => {
+    const last = lastPerformance(ex.name);
+    const rec = records[ex.name];
+    return `<div class="card exercise" data-ex="${i}">
+      <div class="card-head">
+        <h3>${esc(ex.name)}</h3>
+        <span class="equip">${esc(equipOf(ex.name))}</span>
+        <button class="icon-btn small" data-remove-ex="${i}" aria-label="Übung entfernen">✕</button>
+      </div>
+      <div class="ex-meta">
+        ${last ? `<span>Letztes Mal: <strong>${summarizeSets(last.sets)}</strong></span>` : '<span>Noch nie gemacht</span>'}
+        ${rec ? `<span class="gold">🏆 ${fmtKg(rec.kg)} kg × ${rec.reps}</span>` : ''}
+      </div>
+      <div class="sets">
+        <div class="set-row head"><span>Satz</span><span>Wdh.</span><span>kg</span><span></span></div>
+        ${ex.sets.map((s, j) => `<div class="set-row${live && isBetter(bestSet([s]), rec) && rec ? ' pr' : ''}">
+          <span class="set-no">${j + 1}</span>
+          <input type="number" inputmode="numeric" min="0" max="999" value="${s.reps ?? ''}" data-set="${i}:${j}:reps" aria-label="Wiederholungen Satz ${j + 1}">
+          <input type="number" inputmode="decimal" step="0.5" min="0" max="999" value="${s.kg ?? ''}" data-set="${i}:${j}:kg" aria-label="Gewicht Satz ${j + 1}">
+          <button class="icon-btn small" data-remove-set="${i}:${j}" aria-label="Satz entfernen">✕</button>
+        </div>`).join('')}
+      </div>
+      <button class="btn small ghost" data-add-set="${i}">+ Satz</button>
+    </div>`;
+  }).join('');
+}
+
+/* Zwei Editoren mit gleicher Logik: laufendes Workout (gespeichert als Entwurf) und Vorlage im Dialog. */
+let planDraft = null;
+const editors = {
+  session: {
+    el: () => $('#session-exercises'),
+    update: (fn, rerender = true) => updateDraft(d => fn(d.exercises), rerender),
+    get: () => store.getDraft()?.exercises || [],
+  },
+  plan: {
+    el: () => $('#plan-exercises'),
+    update: (fn, rerender = true) => { fn(planDraft.exercises); if (rerender) renderPlanEditor(); },
+    get: () => planDraft?.exercises || [],
+  },
+};
+
+function bindEditor(scope) {
+  const ed = editors[scope];
+  const el = ed.el();
+  el.addEventListener('input', e => {
+    const ref = e.target.dataset.set;
+    if (!ref) return;
+    const [i, j, field] = ref.split(':');
+    ed.update(list => { list[i].sets[j][field] = e.target.value === '' ? '' : +e.target.value; }, false);
+    if (scope === 'session') {
+      const ex = ed.get()[i];
+      const rec = progress().records[ex.name];
+      e.target.closest('.set-row').classList.toggle('pr', !!rec && isBetter(bestSet([ex.sets[j]]), rec));
+    }
+  });
+  el.addEventListener('click', e => {
+    const addSet = e.target.closest('[data-add-set]');
+    if (addSet) {
+      ed.update(list => {
+        const sets = list[addSet.dataset.addSet].sets;
+        const last = sets[sets.length - 1];
+        sets.push(last ? { ...last } : { reps: '', kg: '' });
+      });
+    }
+    const rmSet = e.target.closest('[data-remove-set]');
+    if (rmSet) {
+      const [i, j] = rmSet.dataset.removeSet.split(':').map(Number);
+      ed.update(list => list[i].sets.splice(j, 1));
+    }
+    const rmEx = e.target.closest('[data-remove-ex]');
+    if (rmEx && confirm('Übung entfernen?')) ed.update(list => list.splice(+rmEx.dataset.removeEx, 1));
+  });
+}
+
+function addExercise(scope, name) {
+  const fallback = scope === 'plan'
+    ? [{ reps: 10, kg: '' }, { reps: 10, kg: '' }, { reps: 10, kg: '' }]
+    : [{ reps: '', kg: '' }];
+  editors[scope].update(list => list.push({ name, sets: setsFor(name, fallback) }));
+  const cards = $$('.exercise', editors[scope].el());
+  cards[cards.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+/* ----- Übungsauswahl ----- */
+
+let pickerScope = null;
+let pickerGroup = 'Alle';
+
+function customExerciseNames() {
+  const known = new Set(EXERCISES.map(e => e.name));
+  const names = new Set();
+  Object.values(store.getAllDays()).forEach(d => d.workouts.forEach(w => (w.exercises || []).forEach(ex => names.add(ex.name))));
+  store.getTemplates().forEach(t => t.exercises.forEach(ex => names.add(ex.name)));
+  return [...names].filter(n => !known.has(n)).sort((a, b) => a.localeCompare(b, 'de'));
+}
+
+function openPicker(scope) {
+  pickerScope = scope;
+  $('#picker-search').value = '';
+  renderPicker();
+  $('#picker-dialog').showModal();
+}
+
+function renderPicker() {
+  const q = $('#picker-search').value.trim().toLowerCase();
+  const custom = customExerciseNames().map(name => ({ name, group: 'Eigene', equip: 'Eigene' }));
+  const groups = ['Alle', ...EXERCISE_GROUP_NAMES, ...(custom.length ? ['Eigene'] : [])];
+  $('#picker-chips').innerHTML = groups.map(g => `<button class="chip${g === pickerGroup ? ' active' : ''}" data-group="${g}">${g}</button>`).join('');
+
+  const records = progress().records;
+  const all = [...EXERCISES, ...custom];
+  const items = all.filter(e => (pickerGroup === 'Alle' || e.group === pickerGroup || q) &&
+    (!q || e.name.toLowerCase().includes(q) || e.equip.toLowerCase().includes(q) || e.group.toLowerCase().includes(q)));
+  const exact = all.some(e => e.name.toLowerCase() === q);
+  const raw = $('#picker-search').value.trim();
+
+  $('#picker-list').innerHTML =
+    items.map(e => {
+      const rec = records[e.name];
+      return `<li><button class="list-item" data-pick-name="${esc(e.name)}">
+        <span class="li-main">${esc(e.name)}</span>
+        <span class="li-sub">${e.group} · ${e.equip}</span>
+        <span class="li-value gold small-val">${rec ? '🏆 ' + fmtKg(rec.kg) + ' kg' : ''}</span>
+      </button></li>`;
+    }).join('') +
+    (q && !exact ? `<li><button class="list-item add-custom" data-pick-name="${esc(raw)}">
+        <span class="li-main">+ «${esc(raw)}» als eigene Übung</span><span class="li-sub">Nicht in der Liste? Eigene Übung hinzufügen</span></button></li>` : '');
+}
+
+/* ----- Gespeicherte Workouts ----- */
+
+function renderPlans() {
+  const plans = store.getTemplates();
+  $('#plan-list').innerHTML = plans.length
+    ? plans.map(t => `<li class="list-item static plan">
+        <span class="li-main">${esc(t.name)}</span>
+        <span class="li-sub">${t.exercises.length} Übungen · ${esc(t.exercises.slice(0, 3).map(e => e.name).join(', '))}${t.exercises.length > 3 ? ' …' : ''}</span>
+        <button class="btn small" data-edit-plan="${t.id}">Bearbeiten</button>
+        <button class="btn small primary" data-start-plan="${t.id}">▶ Start</button>
+      </li>`).join('')
+    : '<li class="empty">Noch keine Workouts gespeichert. Erstelle eines mit «+ Neu», z. B. «Push Day» mit Bankdrücken, Schulterpresse und Trizepsdrücken.</li>';
+}
+
+function openPlanEditor(tpl) {
+  planDraft = tpl
+    ? JSON.parse(JSON.stringify(tpl))
+    : { id: null, name: '', exercises: [] };
+  $('#plan-title').textContent = tpl ? 'Workout bearbeiten' : 'Workout erstellen';
+  $('#plan-name').value = planDraft.name;
+  $('#btn-plan-delete').classList.toggle('hidden', !tpl);
+  renderPlanEditor();
+  $('#plan-dialog').showModal();
+}
+
+function renderPlanEditor() {
+  $('#plan-exercises').innerHTML = exerciseEditorHTML(planDraft.exercises, { live: false });
+}
+
+function savePlan() {
+  const name = $('#plan-name').value.trim();
+  if (!name) { $('#plan-name').focus(); toast('Gib dem Workout einen Namen.'); return; }
+  if (!planDraft.exercises.length) { toast('Füge mindestens eine Übung hinzu.'); return; }
+  store.saveTemplate({ ...planDraft, name });
+  $('#plan-dialog').close();
+  toast('Workout gespeichert');
+  renderTraining();
+}
+
+function startWorkout(tpl) {
+  store.setDraft({
+    startedAt: Date.now(),
+    templateId: tpl?.id || null,
+    name: tpl?.name || '',
+    exercises: tpl ? tpl.exercises.map(ex => ({ name: ex.name, sets: setsFor(ex.name, ex.sets.map(s => ({ ...s }))) })) : [],
+  });
+  renderTraining();
+  window.scrollTo(0, 0);
+}
+
+/* ----- Laufendes Workout ----- */
 
 function renderSession() {
   const draft = store.getDraft();
@@ -225,33 +417,8 @@ function renderSession() {
   $('#strength-session').classList.toggle('hidden', !draft);
   if (!draft) return;
 
-  const records = progress().records;
-  $('#session-exercises').innerHTML = draft.exercises.length
-    ? draft.exercises.map((ex, i) => {
-      const last = lastPerformance(ex.name);
-      const rec = records[ex.name];
-      return `<div class="card exercise" data-ex="${i}">
-        <div class="card-head">
-          <h3>${esc(ex.name)}</h3>
-          <button class="icon-btn small" data-remove-ex="${i}" aria-label="Übung entfernen">✕</button>
-        </div>
-        <div class="ex-meta">
-          ${last ? `<span>Letztes Mal: <strong>${summarizeSets(last.sets)}</strong></span>` : '<span>Erstes Mal – leg los!</span>'}
-          ${rec ? `<span class="gold">🏆 ${fmtKg(rec.kg)} kg × ${rec.reps}</span>` : ''}
-        </div>
-        <div class="sets">
-          <div class="set-row head"><span>Satz</span><span>Wdh.</span><span>kg</span><span></span></div>
-          ${ex.sets.map((s, j) => `<div class="set-row">
-            <span class="set-no">${j + 1}</span>
-            <input type="number" inputmode="numeric" min="0" max="999" value="${s.reps ?? ''}" data-set="${i}:${j}:reps" aria-label="Wiederholungen Satz ${j + 1}">
-            <input type="number" inputmode="decimal" step="0.5" min="0" max="999" value="${s.kg ?? ''}" data-set="${i}:${j}:kg" aria-label="Gewicht Satz ${j + 1}">
-            <button class="icon-btn small" data-remove-set="${i}:${j}" aria-label="Satz entfernen">✕</button>
-          </div>`).join('')}
-        </div>
-        <button class="btn small ghost" data-add-set="${i}">+ Satz</button>
-      </div>`;
-    }).join('')
-    : '<div class="card empty-card">Wähle oben eine Übung und tippe auf «+ Übung».</div>';
+  $('#session-title').textContent = draft.name || 'Workout läuft';
+  $('#session-exercises').innerHTML = exerciseEditorHTML(draft.exercises, { live: true });
 
   // Läuft das Workout schon eine Weile, zählt die echte Zeit, sonst 45 Min. als Vorschlag.
   const elapsed = Math.round((Date.now() - draft.startedAt) / 60000);
@@ -278,6 +445,26 @@ function updateDraft(fn, rerender = true) {
   if (rerender) renderSession(); else updateSessionStats();
 }
 
+function cleanExercises(list) {
+  return list
+    .map(ex => ({ name: ex.name, sets: ex.sets.filter(s => +s.reps > 0).map(s => ({ reps: +s.reps, kg: +s.kg || 0 })) }))
+    .filter(ex => ex.sets.length);
+}
+
+function saveSessionAsPlan() {
+  const draft = store.getDraft();
+  const exercises = cleanExercises(draft.exercises);
+  if (!exercises.length) { toast('Trag zuerst Übungen mit Wiederholungen ein.'); return; }
+  const existing = draft.templateId && store.getTemplates().find(t => t.id === draft.templateId);
+  const name = prompt('Name für dieses Workout:', existing?.name || draft.name || '');
+  if (!name || !name.trim()) return;
+  const sameAsExisting = existing && existing.name === name.trim();
+  store.saveTemplate({ id: sameAsExisting ? existing.id : null, name: name.trim(), exercises });
+  if (!sameAsExisting) updateDraft(d => { d.name = name.trim(); }, false);
+  toast(sameAsExisting ? 'Workout aktualisiert' : 'Workout gespeichert');
+  renderPlans();
+}
+
 function renderRecords() {
   const recs = Object.entries(progress().records).sort((a, b) => a[0].localeCompare(b[0], 'de'));
   $('#records').innerHTML = recs.length
@@ -292,17 +479,14 @@ function renderRecords() {
 function finishWorkout() {
   const draft = store.getDraft();
   if (!draft) return;
-  const exercises = draft.exercises
-    .map(ex => ({ name: ex.name, sets: ex.sets.filter(s => +s.reps > 0).map(s => ({ reps: +s.reps, kg: +s.kg || 0 })) }))
-    .filter(ex => ex.sets.length);
+  const exercises = cleanExercises(draft.exercises);
   if (!exercises.length) { toast('Trag mindestens einen Satz mit Wiederholungen ein.'); return; }
 
   const before = progress();
-  const minutes = +$('#st-minutes').value || 45;
   store.addWorkout(currentKey(), {
     kind: 'strength',
-    name: 'Krafttraining',
-    minutes,
+    name: draft.name || 'Krafttraining',
+    minutes: +$('#st-minutes').value || 45,
     kcal: Math.round(+$('#st-kcal').value || 0),
     exercises,
   });
@@ -316,6 +500,68 @@ function finishWorkout() {
     if (prev && isBetter(now, prev)) toast(`🏆 NEUER REKORD: ${ex.name} ${fmtKg(now.kg)} kg × ${now.reps}`, 'gold');
   }
   showView('today');
+}
+
+/* ----- Zielgewicht ----- */
+
+function renderQuest() {
+  const target = store.getTargetWeight();
+  const el = $('#quest');
+  $('#target-input').value = target || '';
+  $('#target-input').placeholder = currentWeight() ? String(currentWeight()) : '';
+  if (!target) {
+    el.innerHTML = '<p class="muted small">Setze dein Zielgewicht. Bitebase rechnet dann aus, wie lange es mit deinem Kalorienziel ungefähr dauert.</p>';
+    $('#quest-badge').textContent = 'QUEST';
+    return;
+  }
+  const weights = store.getWeights();
+  const current = currentWeight();
+  const start = weights.length ? weights[0].kg : current;
+  const diff = target - current;
+  const done = Math.abs(diff) < 0.05 || (start !== target && Math.sign(target - start) !== Math.sign(diff));
+  const total = Math.abs(target - start);
+  const pct = done ? 100 : total ? Math.max(0, Math.min(100, (1 - Math.abs(diff) / total) * 100)) : 0;
+  $('#quest-badge').textContent = done ? 'GESCHAFFT' : `${Math.round(pct)} %`;
+
+  const profile = store.getProfile();
+  const planRate = profile ? plannedRate(profile.goal) : 0;
+  const planWeeks = weeksToGoal(current, target, planRate);
+  const realRate = actualRate(weights);
+  const realWeeks = realRate == null ? null : weeksToGoal(current, target, realRate);
+
+  const dateIn = weeks => {
+    const d = new Date(); d.setDate(d.getDate() + Math.round(weeks * 7));
+    return d.toLocaleDateString('de-CH', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+  const fmtWeeks = w => w < 1 ? 'unter 1 Woche' : w < 9 ? `ca. ${Math.round(w)} ${Math.round(w) === 1 ? 'Woche' : 'Wochen'}` : `ca. ${Math.round(w / 4.35)} Monate`;
+  const rateTxt = r => `${r > 0 ? '+' : '−'}${fmtKg(Math.abs(r))} kg/Woche`;
+
+  let planHtml;
+  if (done) planHtml = '<p class="pos"><strong>🎉 Ziel erreicht!</strong> Setze ein neues Ziel oder halte dein Gewicht.</p>';
+  else if (!profile) planHtml = '<p class="muted small">Fülle dein Profil aus, dann berechne ich die Dauer.</p>';
+  else if (planWeeks == null) planHtml = `<p class="warn small">Mit deinem aktuellen Ziel im Profil (${profile.goal === 0 ? 'Gewicht halten' : profile.goal < 0 ? 'Abnehmen' : 'Zunehmen'}) erreichst du dieses Gewicht nicht. Passe dein Ziel im <button class="link" data-goto="profile">Profil</button> an.</p>`;
+  else planHtml = `<div class="quest-eta"><span class="stat-label">Nach Plan (${rateTxt(planRate)})</span><span class="stat-value">${fmtWeeks(planWeeks)}</span><span class="muted small">Ziel um den ${dateIn(planWeeks)}</span></div>`;
+
+  let realHtml = '';
+  if (!done && realRate != null) {
+    realHtml = realWeeks != null
+      ? `<div class="quest-eta"><span class="stat-label">Nach deinem Trend (${rateTxt(realRate)})</span><span class="stat-value">${fmtWeeks(realWeeks)}</span><span class="muted small">Ziel um den ${dateIn(realWeeks)}</span></div>`
+      : `<p class="muted small">Dein bisheriger Trend (${rateTxt(realRate)}) geht noch nicht Richtung Ziel.</p>`;
+  } else if (!done) {
+    realHtml = '<p class="muted small">Trage dein Gewicht regelmässig ein. Ab 2 Wochen siehst du zusätzlich die Prognose nach deinem echten Tempo.</p>';
+  }
+
+  el.innerHTML = `
+    <div class="quest-row">
+      <div><span class="stat-label">Start</span><span class="stat-value">${fmtKg(start)}</span></div>
+      <div><span class="stat-label">Jetzt</span><span class="stat-value accent">${fmtKg(current)}</span></div>
+      <div><span class="stat-label">Ziel</span><span class="stat-value">${fmtKg(target)}</span></div>
+    </div>
+    <div class="xp-bar quest-bar"><div class="xp-fill" style="width:${pct}%"></div></div>
+    <p class="small muted center">${done ? '' : `Noch ${fmtKg(Math.abs(diff))} kg ${diff < 0 ? 'abnehmen' : 'zunehmen'}`}</p>
+    ${planHtml}
+    ${realHtml}
+    <p class="muted tiny">Schätzung mit 7'700 kcal pro kg Körpergewicht. Der echte Verlauf schwankt.</p>`;
 }
 
 function renderWeekTable() {
@@ -565,52 +811,47 @@ function bind() {
   $$('.seg[data-mode]').forEach(b => b.addEventListener('click', () => { state.trainingMode = b.dataset.mode; renderTraining(); }));
 
   // Krafttraining
-  $('#btn-start-workout').addEventListener('click', () => {
-    store.setDraft({ startedAt: Date.now(), exercises: [] });
-    renderSession();
+  $('#btn-start-workout').addEventListener('click', () => startWorkout(null));
+  $('#btn-new-plan').addEventListener('click', () => openPlanEditor(null));
+  $('#plan-list').addEventListener('click', e => {
+    const start = e.target.closest('[data-start-plan]');
+    if (start) startWorkout(store.getTemplates().find(t => t.id === start.dataset.startPlan));
+    const edit = e.target.closest('[data-edit-plan]');
+    if (edit) openPlanEditor(store.getTemplates().find(t => t.id === edit.dataset.editPlan));
   });
-  $('#ex-select').addEventListener('change', () => {
-    const custom = $('#ex-select').value === '__custom';
-    $('#ex-custom').classList.toggle('hidden', !custom);
-    if (custom) $('#ex-custom').focus();
+  bindEditor('session');
+  bindEditor('plan');
+  $$('[data-pick]').forEach(b => b.addEventListener('click', () => openPicker(b.dataset.pick)));
+  $('#picker-search').addEventListener('input', renderPicker);
+  $('#picker-chips').addEventListener('click', e => {
+    const chip = e.target.closest('[data-group]');
+    if (chip) { pickerGroup = chip.dataset.group; renderPicker(); }
   });
-  $('#btn-add-ex').addEventListener('click', () => {
-    let name = $('#ex-select').value;
-    if (name === '__custom') {
-      name = $('#ex-custom').value.trim();
-      if (!name) { $('#ex-custom').focus(); return; }
-      $('#ex-custom').value = '';
-    }
-    const last = lastPerformance(name);
-    const sets = last ? last.sets.map(s => ({ reps: s.reps, kg: s.kg })) : [{ reps: '', kg: '' }];
-    updateDraft(d => d.exercises.push({ name, sets }));
-    const cards = $$('#session-exercises .exercise');
-    cards[cards.length - 1]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  $('#picker-list').addEventListener('click', e => {
+    const item = e.target.closest('[data-pick-name]');
+    if (!item) return;
+    $('#picker-dialog').close();
+    addExercise(pickerScope, item.dataset.pickName);
   });
-  $('#session-exercises').addEventListener('input', e => {
-    const ref = e.target.dataset.set;
-    if (!ref) return;
-    const [i, j, field] = ref.split(':');
-    updateDraft(d => { d.exercises[i].sets[j][field] = e.target.value === '' ? '' : +e.target.value; }, false);
+  $('#btn-picker-close').addEventListener('click', () => $('#picker-dialog').close());
+  $('#btn-plan-close').addEventListener('click', () => $('#plan-dialog').close());
+  $('#plan-name').addEventListener('input', e => { planDraft.name = e.target.value; });
+  $('#btn-plan-save').addEventListener('click', savePlan);
+  $('#btn-plan-delete').addEventListener('click', () => {
+    if (planDraft?.id && confirm(`Workout «${planDraft.name}» löschen?`)) {
+      store.removeTemplate(planDraft.id);
+      $('#plan-dialog').close();
+      renderTraining();
+    }
   });
-  $('#session-exercises').addEventListener('click', e => {
-    const addSet = e.target.closest('[data-add-set]');
-    if (addSet) {
-      updateDraft(d => {
-        const sets = d.exercises[addSet.dataset.addSet].sets;
-        const last = sets[sets.length - 1];
-        sets.push(last ? { ...last } : { reps: '', kg: '' });
-      });
-    }
-    const rmSet = e.target.closest('[data-remove-set]');
-    if (rmSet) {
-      const [i, j] = rmSet.dataset.removeSet.split(':').map(Number);
-      updateDraft(d => d.exercises[i].sets.splice(j, 1));
-    }
-    const rmEx = e.target.closest('[data-remove-ex]');
-    if (rmEx && confirm('Übung entfernen?')) {
-      updateDraft(d => d.exercises.splice(+rmEx.dataset.removeEx, 1));
-    }
+  $('#btn-save-as-plan').addEventListener('click', saveSessionAsPlan);
+  $('#target-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const kg = Math.round(+$('#target-input').value * 10) / 10;
+    if (!kg) return;
+    store.setTargetWeight(kg);
+    toast('Zielgewicht gesetzt');
+    renderQuest();
   });
   $('#st-minutes').addEventListener('input', () => {
     updateDraft(d => {

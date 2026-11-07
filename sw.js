@@ -1,6 +1,6 @@
 // Offline-Unterstützung: App-Dateien werden zwischengespeichert.
 // Bei jeder neuen Version anpassen (gleich wie in js/version.js).
-const CACHE = 'bitebase-1.1.0';
+const CACHE = 'bitebase-1.2.0';
 const ASSETS = [
   './',
   'index.html',
