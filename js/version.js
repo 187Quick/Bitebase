@@ -3,6 +3,15 @@
 // CHANGELOG.md ergänzen und den Git-Tag (z. B. v1.2.0) setzen.
 export const CHANGELOG = [
   {
+    version: '1.5.0',
+    date: '2026-11-11',
+    title: 'Coop-Einkaufsliste',
+    changes: [
+      'Jedes Rezept zeigt die passenden Coop-Produkte mit Packungsgrösse',
+      'Link zur Produktseite auf coop.ch',
+    ],
+  },
+  {
     version: '1.4.0',
     date: '2026-11-11',
     title: 'Food & Rezepte',

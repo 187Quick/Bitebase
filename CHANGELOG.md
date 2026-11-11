@@ -3,6 +3,10 @@
 Jede Veröffentlichung bekommt eine Versionsnummer und einen Git-Tag (z. B. `v1.1.0`).
 Die gleiche Liste ist in der App unter **Profil → Versionen** zu sehen (`js/version.js`).
 
+## v1.5.0 – Coop-Einkaufsliste (2026-11-11)
+- Jedes Rezept zeigt die passenden Coop-Produkte mit Packungsgrösse
+- Link zur Produktseite auf coop.ch (Stand November 2026)
+
 ## v1.4.0 – Food & Rezepte (2026-11-11)
 - Lebensmittel-Datenbank mit über 200 Einträgen: suchen, Menge wählen, fertig
 - Portionen mit einem Tipp (½, 1, 1½, 2 oder 100 g)

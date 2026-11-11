@@ -9,6 +9,7 @@ import { CHANGELOG, VERSION } from './version.js';
 import { exerciseImages } from './exercise-images.js';
 import { FOOD_CATEGORIES, findFood, nutrition, searchFoods } from './foods.js';
 import { RECIPES, RECIPE_CATS, recipeNutrition } from './recipes.js';
+import { coopProduct } from './coop-products.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -905,7 +906,19 @@ function showRecipe(id) {
       ${r.ingredients.map(i => `<li>${esc(i[2])}</li>`).join('')}
       ${(r.extras || []).map(e => `<li class="muted">${esc(e)}</li>`).join('')}
     </ul>
-    <p class="muted tiny">🛒 Alle Zutaten gibt es bei Coop und Migros.</p>
+    <h3>🛒 Im Coop einkaufen</h3>
+    <ul class="shop-list">
+      ${r.ingredients.map(([food]) => {
+        const c = coopProduct(food);
+        const label = esc(food.replace(/ \((roh|gekocht|abgetropft|Dose|teilentrahmt)\)/, ''));
+        if (c?.url) return `<li><span class="shop-ing">${label}</span>
+          <a href="${c.url}" target="_blank" rel="noopener">${esc(c.name)}</a>
+          <span class="shop-pack">${esc(c.pack)}</span>
+          ${c.note ? `<span class="muted tiny shop-note">${esc(c.note)}</span>` : ''}</li>`;
+        return `<li><span class="shop-ing">${label}</span><span class="muted">${c?.fresh ? 'Frisch aus der Früchte- und Gemüseabteilung' : 'Im Regal, verschiedene Marken'}</span></li>`;
+      }).join('')}
+    </ul>
+    <p class="muted tiny">Produkte von coop.ch, Stand November 2026. Sortiment und Packungsgrössen können sich ändern. Die meisten Zutaten gibt es ähnlich auch bei Migros.</p>
     <h3>Zubereitung</h3>
     <ol class="steps">${r.steps.map(st => `<li>${esc(st)}</li>`).join('')}</ol>`;
   $('#recipe-dialog').showModal();
