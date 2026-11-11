@@ -3,6 +3,18 @@
 // CHANGELOG.md ergänzen und den Git-Tag (z. B. v1.2.0) setzen.
 export const CHANGELOG = [
   {
+    version: '1.4.0',
+    date: '2026-11-11',
+    title: 'Food & Rezepte',
+    changes: [
+      'Lebensmittel-Datenbank mit über 200 Einträgen: suchen, Menge wählen, fertig',
+      'Portionen mit einem Tipp (½, 1, 1½, 2 oder 100 g)',
+      '«Zuletzt gegessen» für schnelles Wiederholen',
+      'Neuer Reiter «Rezepte» mit 21 proteinreichen Rezepten aus Zutaten von Coop und Migros',
+      'Rezepte zeigen, was heute noch in dein Kalorienziel passt',
+    ],
+  },
+  {
     version: '1.3.0',
     date: '2026-11-07',
     title: 'Bilder & Workouts',

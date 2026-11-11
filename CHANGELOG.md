@@ -3,6 +3,13 @@
 Jede Veröffentlichung bekommt eine Versionsnummer und einen Git-Tag (z. B. `v1.1.0`).
 Die gleiche Liste ist in der App unter **Profil → Versionen** zu sehen (`js/version.js`).
 
+## v1.4.0 – Food & Rezepte (2026-11-11)
+- Lebensmittel-Datenbank mit über 200 Einträgen: suchen, Menge wählen, fertig
+- Portionen mit einem Tipp (½, 1, 1½, 2 oder 100 g)
+- «Zuletzt gegessen» für schnelles Wiederholen
+- Neuer Reiter «Rezepte» mit 21 proteinreichen Rezepten aus Zutaten von Coop und Migros
+- Rezepte zeigen, was heute noch in dein Kalorienziel passt
+
 ## v1.3.0 – Bilder & Workouts (2026-11-07)
 - Bilder zu jeder Übung: Person am Gerät, Start- und Endposition im Wechsel (Free Exercise DB, Public Domain)
 - Neuer Bereich «Gespeicherte Workouts» zwischen «Meine Workouts» und «Rekorde»

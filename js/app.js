@@ -7,6 +7,8 @@ import {
 import { prepareImage, analyzeFood } from './scanner.js';
 import { CHANGELOG, VERSION } from './version.js';
 import { exerciseImages } from './exercise-images.js';
+import { FOOD_CATEGORIES, findFood, nutrition, searchFoods } from './foods.js';
+import { RECIPES, RECIPE_CATS, recipeNutrition } from './recipes.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -85,6 +87,7 @@ function celebrate(before, msg) {
 function render() {
   renderDate();
   if (state.view === 'today') renderToday();
+  if (state.view === 'recipes') renderRecipes();
   if (state.view === 'scan') renderScan();
   if (state.view === 'training') renderTraining();
   if (state.view === 'profile') renderProfile();
@@ -151,7 +154,7 @@ function renderToday() {
   $('#food-list').innerHTML = foods.length
     ? foods.map(f => `<li><button class="list-item" data-food="${f.id}">
         <span class="li-main">${esc(f.name)}</span>
-        <span class="li-sub">${f.time ? f.time + ' · ' : ''}P ${fmt(f.protein || 0)} · K ${fmt(f.carbs || 0)} · F ${fmt(f.fat || 0)}</span>
+        <span class="li-sub">${f.time ? f.time + ' · ' : ''}${f.amount ? fmt(f.amount) + ' ' + (f.unit || 'g') + ' · ' : ''}P ${fmt(f.protein || 0)} · K ${fmt(f.carbs || 0)} · F ${fmt(f.fat || 0)}</span>
         <span class="li-value">${fmt(f.kcal)}</span>
       </button></li>`).join('')
     : '<li class="empty">Noch nichts eingetragen.</li>';
@@ -729,18 +732,184 @@ function updateCalcPreview() {
 /* ---------- Essen-Dialog ---------- */
 
 let editing = null;
+let foodBase = null;   // gewähltes Lebensmittel aus der Datenbank
+let foodCat = null;    // gewählte Kategorie in der Suche
+
+/** Zuletzt gegessene Einträge (ohne Duplikate), neueste zuerst. */
+function recentFoods(limit = 6) {
+  const days = store.getAllDays();
+  const seen = new Set();
+  const out = [];
+  for (const key of Object.keys(days).sort().reverse()) {
+    for (const f of [...days[key].foods].reverse()) {
+      const id = f.name + '|' + (f.amount || '');
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(f);
+      if (out.length >= limit) return out;
+    }
+  }
+  return out;
+}
 
 function openFoodDialog(food) {
-  const f = $('#food-form');
   editing = food?.id || null;
+  foodCat = null;
   $('#food-dialog-title').textContent = food ? 'Eintrag bearbeiten' : 'Essen hinzufügen';
   $('#btn-food-delete').classList.toggle('hidden', !food);
-  f.name.value = food?.name || '';
-  f.kcal.value = food?.kcal ?? '';
-  f.protein.value = food?.protein ?? '';
-  f.carbs.value = food?.carbs ?? '';
-  f.fat.value = food?.fat ?? '';
+  $('#food-search').value = '';
+  if (food) showFoodForm(food, food.base ? findFood(food.base) : null, food.amount);
+  else showFoodSearch();
   $('#food-dialog').showModal();
+}
+
+function showFoodSearch() {
+  $('#food-search-pane').classList.remove('hidden');
+  $('#food-form').classList.add('hidden');
+  renderFoodSearch();
+}
+
+function renderFoodSearch() {
+  const q = $('#food-search').value;
+  $('#food-chips').innerHTML = ['Alle', ...FOOD_CATEGORIES].map(c =>
+    `<button class="chip${(c === 'Alle' ? !foodCat : c === foodCat) ? ' active' : ''}" type="button" data-food-cat="${c}">${c}</button>`).join('');
+
+  const item = f => `<li><button class="list-item" type="button" data-db-food="${esc(f.name)}">
+      <span class="li-main">${esc(f.name)}</span>
+      <span class="li-sub">${f.portionLabel} (${fmt(f.portion)} ${f.unit}) · P ${fmtKg(f.protein * f.portion / 100)} g</span>
+      <span class="li-value">${fmt(f.kcal * f.portion / 100)}<small> kcal</small></span>
+    </button></li>`;
+
+  let html = '';
+  if (!q.trim() && !foodCat) {
+    const recent = recentFoods();
+    if (recent.length) {
+      html += '<li class="list-label">Zuletzt gegessen</li>' + recent.map((f, i) => `<li><button class="list-item" type="button" data-recent="${i}">
+        <span class="li-main">${esc(f.name)}</span>
+        <span class="li-sub">${f.amount ? fmt(f.amount) + ' ' + (f.unit || 'g') + ' · ' : ''}P ${fmt(f.protein || 0)} g</span>
+        <span class="li-value">${fmt(f.kcal)}<small> kcal</small></span>
+      </button></li>`).join('');
+    }
+    html += '<li class="list-label">Beliebt</li>' + ['Pouletbrust (roh)', 'Ei', 'Magerquark', 'Haferflocken', 'Reis (gekocht)', 'Banane', 'Ruchbrot', 'Whey-Proteinpulver']
+      .map(n => item(findFood(n))).join('');
+  } else {
+    const results = searchFoods(q, foodCat);
+    html = results.length ? results.map(item).join('') : '<li class="empty">Nichts gefunden. Du kannst es unten manuell eingeben.</li>';
+  }
+  $('#food-results').innerHTML = html;
+}
+
+function showFoodForm(values, base, amount) {
+  const f = $('#food-form');
+  foodBase = base || null;
+  $('#food-search-pane').classList.add('hidden');
+  f.classList.remove('hidden');
+  $('#btn-food-back').classList.toggle('hidden', !!editing);
+  $('#food-base').classList.toggle('hidden', !foodBase);
+  $('#food-amount-box').classList.toggle('hidden', !foodBase);
+
+  f.name.value = values?.name || '';
+  f.kcal.value = values?.kcal ?? '';
+  f.protein.value = values?.protein ?? '';
+  f.carbs.value = values?.carbs ?? '';
+  f.fat.value = values?.fat ?? '';
+
+  if (foodBase) {
+    const b = foodBase;
+    $('#food-base').innerHTML = `<strong>${esc(b.name)}</strong><span class="muted small">pro 100 ${b.unit}: ${fmt(b.kcal)} kcal · P ${fmtKg(b.protein)} · K ${fmtKg(b.carbs)} · F ${fmtKg(b.fat)}</span>`;
+    $('#food-amount-label').textContent = `Menge (${b.unit})`;
+    $('#food-amount').value = amount || b.portion;
+    $('#food-portions').innerHTML = [0.5, 1, 1.5, 2].map(k =>
+      `<button class="chip" type="button" data-portion="${k * b.portion}">${{ 0.5: '½ ×', 1: b.portionLabel, 1.5: '1½ ×', 2: '2 ×' }[k]} <small>${fmt(k * b.portion)} ${b.unit}</small></button>`).join('') +
+      `<button class="chip" type="button" data-portion="100">100 ${b.unit}</button>`;
+    if (!editing || !values?.kcal) recalcFood();
+  }
+}
+
+function recalcFood() {
+  if (!foodBase) return;
+  const f = $('#food-form');
+  const n = nutrition(foodBase, +$('#food-amount').value || 0);
+  f.name.value = foodBase.name;
+  f.kcal.value = n.kcal;
+  f.protein.value = n.protein;
+  f.carbs.value = n.carbs;
+  f.fat.value = n.fat;
+}
+
+/* ---------- Rezepte ---------- */
+
+let recipeFilter = 'Alle';
+let openRecipe = null;
+
+function remainingToday() {
+  const targets = baseTarget();
+  if (!targets) return null;
+  const day = store.getDay(currentKey());
+  const eaten = sumFoods(day.foods);
+  const burned = day.workouts.reduce((s, w) => s + (+w.kcal || 0), 0);
+  return { kcal: targets.kcal + burned - eaten.kcal, protein: targets.protein - eaten.protein };
+}
+
+function renderRecipes() {
+  const rest = remainingToday();
+  $('#recipe-status').innerHTML = !rest
+    ? 'Fülle dein <button class="link" data-goto="profile">Profil</button> aus, dann zeige ich dir, welche Rezepte heute passen.'
+    : rest.protein > 0
+      ? `Dir fehlen ${isToday() ? 'heute' : 'an diesem Tag'} noch <strong class="accent">${fmt(rest.protein)} g Protein</strong>${rest.kcal > 0 ? ` und du hast noch <strong>${fmt(rest.kcal)} kcal</strong> übrig` : ''}.`
+      : '<span class="pos">Protein-Ziel erreicht! 💪</span>';
+
+  const filters = ['Alle', ...(rest ? ['Passt heute'] : []), ...RECIPE_CATS, 'Vegi'];
+  if (!filters.includes(recipeFilter)) recipeFilter = 'Alle';
+  $('#recipe-chips').innerHTML = filters.map(c => `<button class="chip${c === recipeFilter ? ' active' : ''}" data-recipe-filter="${c}">${c}</button>`).join('');
+
+  const fits = n => rest && rest.kcal > 0 && n.kcal <= rest.kcal;
+  const list = RECIPES.map(r => ({ r, n: recipeNutrition(r) }))
+    .filter(({ r, n }) => recipeFilter === 'Alle' || (recipeFilter === 'Passt heute' ? fits(n) : recipeFilter === 'Vegi' ? r.vegi : r.cat === recipeFilter))
+    .sort((a, b) => b.n.protein - a.n.protein);
+
+  $('#recipe-list').innerHTML = list.length ? list.map(({ r, n }) => `
+    <button class="card recipe-card" data-recipe="${r.id}">
+      <span class="recipe-icon">${r.icon}</span>
+      <span class="recipe-main">
+        <span class="recipe-name">${esc(r.name)}</span>
+        <span class="recipe-tags">
+          <span class="tag protein">${n.protein} g Protein</span>
+          <span class="tag">${fmt(n.kcal)} kcal</span>
+          <span class="tag">${r.time} Min.</span>
+          ${r.vegan ? '<span class="tag green">vegan</span>' : r.vegi ? '<span class="tag green">vegi</span>' : ''}
+          ${fits(n) ? '<span class="tag fit">passt heute</span>' : ''}
+        </span>
+      </span>
+    </button>`).join('')
+    : '<div class="card empty-card">Für heute passt kein Rezept mehr in dein Kalorienziel. Unter «Alle» findest du alle Rezepte.</div>';
+}
+
+function showRecipe(id) {
+  const r = RECIPES.find(x => x.id === id);
+  if (!r) return;
+  openRecipe = r;
+  const n = recipeNutrition(r);
+  $('#recipe-title').textContent = r.name;
+  $('#recipe-body').innerHTML = `
+    <div class="recipe-hero"><span>${r.icon}</span></div>
+    <div class="recipe-stats">
+      <div><span class="stat-value accent">${fmt(n.kcal)}</span><span class="stat-label">kcal</span></div>
+      <div><span class="stat-value xp">${n.protein} g</span><span class="stat-label">Protein</span></div>
+      <div><span class="stat-value">${n.carbs} g</span><span class="stat-label">Kohlenh.</span></div>
+      <div><span class="stat-value">${n.fat} g</span><span class="stat-label">Fett</span></div>
+    </div>
+    <p class="muted small center">Nährwerte pro Portion · ${r.time} Min. · ${r.portions === 1 ? 'für 1 Portion' : `ergibt ${r.portions} Portionen`}</p>
+    <h3>Zutaten${r.portions > 1 ? ` (für ${r.portions} Portionen)` : ''}</h3>
+    <ul class="ingredients">
+      ${r.ingredients.map(i => `<li>${esc(i[2])}</li>`).join('')}
+      ${(r.extras || []).map(e => `<li class="muted">${esc(e)}</li>`).join('')}
+    </ul>
+    <p class="muted tiny">🛒 Alle Zutaten gibt es bei Coop und Migros.</p>
+    <h3>Zubereitung</h3>
+    <ol class="steps">${r.steps.map(st => `<li>${esc(st)}</li>`).join('')}</ol>`;
+  $('#recipe-dialog').showModal();
+  $('#recipe-dialog').scrollTop = 0;
 }
 
 /* ---------- Events ---------- */
@@ -778,6 +947,30 @@ function bind() {
       render();
     }
   });
+  $('#food-search').addEventListener('input', renderFoodSearch);
+  $('#food-chips').addEventListener('click', e => {
+    const chip = e.target.closest('[data-food-cat]');
+    if (chip) { foodCat = chip.dataset.foodCat === 'Alle' ? null : chip.dataset.foodCat; renderFoodSearch(); }
+  });
+  $('#food-results').addEventListener('click', e => {
+    const db = e.target.closest('[data-db-food]');
+    if (db) { const food = findFood(db.dataset.dbFood); showFoodForm(null, food, food.portion); }
+    const rec = e.target.closest('[data-recent]');
+    if (rec) {
+      const f = recentFoods()[+rec.dataset.recent];
+      showFoodForm(f, f.base ? findFood(f.base) : null, f.amount);
+    }
+  });
+  $('#btn-food-manual').addEventListener('click', () => {
+    showFoodForm({ name: $('#food-search').value.trim() }, null);
+    $('#food-form').name.focus();
+  });
+  $('#btn-food-back').addEventListener('click', showFoodSearch);
+  $('#food-amount').addEventListener('input', recalcFood);
+  $('#food-portions').addEventListener('click', e => {
+    const chip = e.target.closest('[data-portion]');
+    if (chip) { $('#food-amount').value = +chip.dataset.portion; recalcFood(); }
+  });
   $('#food-form').addEventListener('submit', e => {
     const f = e.target;
     const food = {
@@ -786,6 +979,9 @@ function bind() {
       protein: +f.protein.value || 0,
       carbs: +f.carbs.value || 0,
       fat: +f.fat.value || 0,
+      base: foodBase?.name || null,
+      amount: foodBase ? +$('#food-amount').value || null : null,
+      unit: foodBase?.unit || null,
     };
     if (editing) {
       store.updateFood(currentKey(), editing, food);
@@ -796,6 +992,26 @@ function bind() {
       celebrate(before, 'Hinzugefügt');
     }
     render();
+  });
+
+  // Rezepte
+  $('#recipe-chips').addEventListener('click', e => {
+    const chip = e.target.closest('[data-recipe-filter]');
+    if (chip) { recipeFilter = chip.dataset.recipeFilter; renderRecipes(); }
+  });
+  $('#recipe-list').addEventListener('click', e => {
+    const card = e.target.closest('[data-recipe]');
+    if (card) showRecipe(card.dataset.recipe);
+  });
+  $('#btn-recipe-close').addEventListener('click', () => $('#recipe-dialog').close());
+  $('#btn-recipe-add').addEventListener('click', () => {
+    if (!openRecipe) return;
+    const n = recipeNutrition(openRecipe);
+    const before = progress();
+    store.addFood(currentKey(), { name: openRecipe.name, ...n, time: nowTime(), source: 'recipe' });
+    $('#recipe-dialog').close();
+    celebrate(before, 'Rezept eingetragen');
+    showView('today');
   });
 
   // Profil / Rechner

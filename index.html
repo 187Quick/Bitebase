@@ -23,6 +23,7 @@
     <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></symbol>
     <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
     <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3 9.5v5M21 9.5v5M6.5 12h11"/></symbol>
+    <symbol id="i-bowl" viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0zM8 21h8M9 7c0-1.5 1.5-1.5 1.5-3M13.5 7c0-1.5 1.5-1.5 1.5-3"/></symbol>
     <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></symbol>
   </svg>
 
@@ -93,6 +94,20 @@
         </div>
         <ul class="list" id="today-workouts"></ul>
       </div>
+    </section>
+
+    <!-- REZEPTE -->
+    <section class="view" data-view="recipes" hidden>
+      <div class="card">
+        <h2>Protein-Rezepte</h2>
+        <p class="muted small">Proteinreiche Rezepte mit Zutaten, die du bei Coop und Migros bekommst. Mit einem Tipp trägst du eine Portion in deinen Tag ein.</p>
+        <p class="recipe-status" id="recipe-status"></p>
+        <div class="chips" id="recipe-chips"></div>
+      </div>
+      <div id="recipe-list"></div>
+      <p class="muted tiny center">Eigene Rezepte von Bitebase, Nährwerte aus den Zutaten berechnet. Noch mehr Ideen findest du bei
+        <a href="https://fooby.ch" target="_blank" rel="noopener">Fooby (Coop)</a> und
+        <a href="https://migusto.migros.ch" target="_blank" rel="noopener">Migusto (Migros)</a>.</p>
     </section>
 
     <!-- SCANNER -->
@@ -319,15 +334,34 @@
 
   <nav class="tabbar" aria-label="Navigation">
     <button data-tab="today" class="active"><svg class="ico"><use href="#i-home"/></svg><span>Heute</span></button>
+    <button data-tab="recipes"><svg class="ico"><use href="#i-bowl"/></svg><span>Rezepte</span></button>
     <button data-tab="scan"><svg class="ico"><use href="#i-camera"/></svg><span>Scanner</span></button>
     <button data-tab="training"><svg class="ico"><use href="#i-dumbbell"/></svg><span>Training</span></button>
     <button data-tab="profile"><svg class="ico"><use href="#i-user"/></svg><span>Profil</span></button>
   </nav>
 
-  <!-- Dialog: Essen manuell hinzufügen / bearbeiten -->
-  <dialog id="food-dialog">
-    <form method="dialog" id="food-form" class="form">
+  <!-- Dialog: Essen hinzufügen / bearbeiten -->
+  <dialog id="food-dialog" class="sheet">
+    <div class="sheet-head">
       <h2 id="food-dialog-title">Essen hinzufügen</h2>
+      <button class="icon-btn small" type="button" id="btn-food-cancel" aria-label="Schliessen">✕</button>
+    </div>
+
+    <div id="food-search-pane">
+      <input type="search" id="food-search" placeholder="Suchen, z. B. Poulet, Quark" autocomplete="off">
+      <div class="chips" id="food-chips"></div>
+      <ul class="list picker-list" id="food-results"></ul>
+      <button class="btn block" type="button" id="btn-food-manual">Nicht dabei? Manuell eingeben</button>
+      <p class="muted tiny center">Durchschnittswerte pro 100 g. Je nach Marke weichen sie leicht ab.</p>
+    </div>
+
+    <form method="dialog" id="food-form" class="form hidden">
+      <button class="link back-link hidden" type="button" id="btn-food-back">‹ Zurück zur Suche</button>
+      <div class="food-base hidden" id="food-base"></div>
+      <div class="hidden" id="food-amount-box">
+        <label class="field"><span id="food-amount-label">Menge (g)</span><input type="number" id="food-amount" inputmode="decimal" min="1" max="5000" step="1"></label>
+        <div class="chips portion-chips" id="food-portions"></div>
+      </div>
       <label class="field"><span>Name</span><input type="text" name="name" required maxlength="80" placeholder="z. B. Birchermüesli"></label>
       <div class="row">
         <label class="field"><span>kcal</span><input type="number" name="kcal" inputmode="numeric" min="0" max="5000" required></label>
@@ -340,10 +374,19 @@
       <div class="row dialog-actions">
         <button class="btn danger hidden" type="button" id="btn-food-delete">Löschen</button>
         <span class="spacer"></span>
-        <button class="btn" type="button" id="btn-food-cancel">Abbrechen</button>
         <button class="btn primary" type="submit">Speichern</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- Dialog: Rezept -->
+  <dialog id="recipe-dialog" class="sheet">
+    <div class="sheet-head">
+      <h2 id="recipe-title"></h2>
+      <button class="icon-btn small" type="button" id="btn-recipe-close" aria-label="Schliessen">✕</button>
+    </div>
+    <div id="recipe-body"></div>
+    <button class="btn primary block" id="btn-recipe-add">Eine Portion zum Tag hinzufügen</button>
   </dialog>
 
   <!-- Dialog: Übung wählen -->

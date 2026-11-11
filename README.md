@@ -5,6 +5,8 @@ Persönliche Web-App fürs iPhone: Kalorien zählen, Tagesbedarf berechnen, Trai
 ## Funktionen
 
 - **Heute:** Level, XP und Streak, Kalorien-Anzeige «gegessen / Ziel», Makros, Essensliste, Trainings, Tage vor- und zurückblättern
+- **Lebensmittel-Datenbank:** über 200 Lebensmittel mit Nährwerten, Suche und Portionen (`js/foods.js`)
+- **Rezepte:** 21 proteinreiche Rezepte mit Zutaten aus Coop und Migros, Nährwerte aus den Zutaten berechnet (`js/recipes.js`)
 - **Food-Scanner:** Foto vom Essen → die KI (Claude) schätzt Kalorien und Makros pro Komponente → anpassen → speichern
 - **Krafttraining:** über 80 Gym-Geräte und Übungen, eigene Workouts speichern und starten, Sätze mit Wiederholungen und Gewicht, «Letztes Mal»-Anzeige und persönliche Rekorde
 - **Zielgewicht:** Fortschritt und Prognose, wann das Ziel erreicht ist (nach Plan und nach echtem Trend)
