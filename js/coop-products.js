@@ -47,6 +47,17 @@ const PRODUCTS = {
   'Erdnussbutter': ['Karma Bio Peanut Butter Crunchy', '250 g', P + 'en/food/pantry/spreads/other-sweet-spreads/karma-organic-peanut-butter-crunchy/p/6615670'],
   'Mandeln': ['Naturaplan Bio Mandeln ganz', '200 g', P + 'en/food/pantry/baking-ingredients/classic-baking-ingredients/nuts/naturaplan-bio-mandeln-ganz/p/6377154'],
 
+  // Mittagessen ohne Kochen
+  'Trutenaufschnitt': ['Trutenbrust hauchdünn', '330 g', P + 'de/lebensmittel/fleisch-fisch/charcuterie-wurstwaren/schinken-aufschnitt/aufschnitt/trutenbrust-hauchduenn/p/4938672', 'Kleinere Packung: Trutenbrust-Aufschnitt 130 g.'],
+  'Ei (hartgekocht)': ['Prix Garantie Freilandeier PicNic (gekocht)', '6 Stück', P + 'en/food/dairy-products-eggs/eggs/hard-boiled-eggs/prix-garantie-free-range-eggs-ch-picnic-6-pack/p/6741657'],
+  'High-Protein-Drink (Milch)': ['Emmi Energy Milk High Protein Schoko', '330 ml', P + 'en/food/drinks/frozen-milk-drinks/milkshakes-lassi/emmi-chocolate-high-protein-energy-milk-drink/p/5876778'],
+  'High-Protein-Pudding': ['High Protein Pudding Schokolade', '400 g', P + 'en/food/dairy-products-eggs/desserts-cream/pudding-flan/high-protein-chocolate-pudding/p/6856075'],
+  'Proteinriegel': ['High Protein Riegel Choco Brownie', '45 g', P + 'en/food/specific-diets/sports-nutrition-proteins/bars/high-protein-riegel-choco-brownie/p/7342950'],
+  'Proteinbrot': ['Karma Protein Bread', '250 g', P + 'de/lebensmittel/brot-backwaren/haltbare-brote/lang-haltbare-brote/karma-protein-bread/p/7510953'],
+  'Räucherlachs': ['Rauchlachs-Filet ASC', '130 g', P + 'en/food/meat-fish/packaged-fish/packaged-fresh-fish/smoked-salmon-fillet-asc/p/7237803'],
+  'Cherrytomaten': ['Cherrytomaten', '250 g', P + 'en/food/fruit-vegetables/salad-vegetables/tomatoes/cherry-tomatoes/p/3090386'],
+  'Edamame': ['Edamame geschält tiefgekühlt', '500 g', P + 'en/food/frozen/fruits-vegetables/vegetables-potato-products/vegetables/frozen-shelled-edamame/p/6500167'],
+
   'Champignons': ['Naturaplan Bio Champignons weiss', '250 g', P + 'de/lebensmittel/fruechte-gemuese/pilze/naturaplan-bio-champignons-weiss/p/7321646'],
   'Spinat': ['Blattspinat nature tiefgekühlt', '3 × 600 g', P + 'de/lebensmittel/tiefgekuehlt/fruechte-gemuese/gemuese-kartoffelprodukte/sortenreine-gemuese/blattspinat-nature-tiefgekuehlt-3x600g/p/6560681', 'Oder frischer Blattspinat aus der Gemüseabteilung.'],
   'Heidelbeeren': ['Heidelbeeren', '500 g', P + 'de/lebensmittel/fruechte-gemuese/fruechte/beeren/heidelbeeren/p/3090122'],
@@ -54,12 +65,16 @@ const PRODUCTS = {
 };
 
 // Frischwaren ohne feste Packung.
-const FRESH = new Set(['Banane', 'Tomaten', 'Erdbeeren', 'Brokkoli', 'Kartoffeln (gekocht)', 'Peperoni', 'Zwiebel', 'Zucchetti', 'Blattsalat', 'Gurke']);
+const FRESH = new Set(['Karotten', 'Avocado', 'Apfel', 'Banane', 'Tomaten', 'Erdbeeren', 'Brokkoli', 'Kartoffeln (gekocht)', 'Peperoni', 'Zwiebel', 'Zucchetti', 'Blattsalat', 'Gurke']);
 
-/** Coop-Produkt zu einer Zutat: { name, pack, url, note } | { fresh: true } | null */
+// Offen aus der Bäckerei.
+const BAKERY = new Set(['Laugenbrezel', 'Vollkornbrötli']);
+
+/** Coop-Produkt zu einer Zutat: { name, pack, url, note } | { fresh: true } | { bakery: true } | null */
 export function coopProduct(foodName) {
   const p = PRODUCTS[foodName];
   if (p) return { name: p[0], pack: p[1], url: p[2], note: p[3] || '' };
   if (FRESH.has(foodName)) return { fresh: true };
+  if (BAKERY.has(foodName)) return { bakery: true };
   return null;
 }

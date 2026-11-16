@@ -35,6 +35,7 @@ const DATA = {
   ],
   'Milch & Eier': [
     ['Ei', 143, 12.5, 0.7, 9.5, 55, '1 Stück'],
+    ['Ei (hartgekocht)', 143, 12.5, 0.7, 9.5, 55, '1 Stück'],
     ['Eiklar', 50, 11, 0.7, 0.2, 33, '1 Stück'],
     ['Vollmilch', 65, 3.3, 4.8, 3.5, 200, '1 Glas'],
     ['Milchdrink (teilentrahmt)', 57, 3.3, 4.9, 2.7, 200, '1 Glas'],
@@ -64,6 +65,8 @@ const DATA = {
   'Brot & Getreide': [
     ['Ruchbrot', 240, 8.5, 48, 1.2, 50, '1 Scheibe'],
     ['Vollkornbrot', 230, 9, 41, 2, 50, '1 Scheibe'],
+    ['Vollkornbrötli', 250, 10, 44, 3, 80, '1 Stück'],
+    ['Proteinbrot', 260, 21, 9, 13, 50, '1 Scheibe'],
     ['Weissbrot', 265, 8.5, 52, 1.5, 40, '1 Scheibe'],
     ['Zopf', 330, 9, 50, 10, 50, '1 Scheibe'],
     ['Buttergipfel', 420, 8, 42, 24, 45, '1 Stück'],
@@ -100,6 +103,7 @@ const DATA = {
     ['Blumenkohl', 25, 2, 2.3, 0.3, 150, '1 Portion'],
     ['Karotten', 40, 1, 7, 0.2, 100, '1 grosse'],
     ['Tomaten', 18, 0.9, 2.6, 0.2, 120, '1 Stück'],
+    ['Cherrytomaten', 20, 1, 3, 0.2, 125, '1/2 Schale'],
     ['Gehackte Tomaten (Dose)', 22, 1.2, 3.5, 0.2, 400, '1 Dose'],
     ['Gurke', 13, 0.6, 1.8, 0.2, 100, '1/4 Stück'],
     ['Peperoni', 28, 1, 5, 0.3, 150, '1 Stück'],

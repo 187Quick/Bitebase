@@ -24,6 +24,7 @@
     <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/></symbol>
     <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M6.5 6.5v11M17.5 6.5v11M3 9.5v5M21 9.5v5M6.5 12h11"/></symbol>
     <symbol id="i-bowl" viewBox="0 0 24 24"><path d="M3 11h18a9 9 0 0 1-18 0zM8 21h8M9 7c0-1.5 1.5-1.5 1.5-3M13.5 7c0-1.5 1.5-1.5 1.5-3"/></symbol>
+    <symbol id="i-reload" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 6.3M20 4v7h-7"/></symbol>
     <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></symbol>
   </svg>
 
@@ -99,8 +100,11 @@
     <!-- REZEPTE -->
     <section class="view" data-view="recipes" hidden>
       <div class="card">
-        <h2>Protein-Rezepte</h2>
-        <p class="muted small">Proteinreiche Rezepte mit Zutaten, die du bei Coop und Migros bekommst. Mit einem Tipp trägst du eine Portion in deinen Tag ein.</p>
+        <div class="card-head">
+          <h2>Protein-Rezepte</h2>
+          <button class="btn small reload-btn" id="btn-recipe-reload" aria-label="Neue Rezepte laden"><svg class="ico"><use href="#i-reload"/></svg> Neue Rezepte</button>
+        </div>
+        <p class="muted small">Proteinreiche Rezepte zum Kochen und Mittagessen ohne Kochen aus Coop-Produkten. Mit «Neue Rezepte» bekommst du eine neue Auswahl.</p>
         <p class="recipe-status" id="recipe-status"></p>
         <div class="chips" id="recipe-chips"></div>
       </div>

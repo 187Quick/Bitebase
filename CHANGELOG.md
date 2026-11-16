@@ -3,6 +3,12 @@
 Jede Veröffentlichung bekommt eine Versionsnummer und einen Git-Tag (z. B. `v1.1.0`).
 Die gleiche Liste ist in der App unter **Profil → Versionen** zu sehen (`js/version.js`).
 
+## v1.6.0 – Mittagessen (2026-11-16)
+- 7 neue Mittagessen zum Kochen (auch zum Mitnehmen)
+- 11 Mittagessen ohne Kochen aus Coop-Produkten, z. B. Brezel mit Trutenbrust
+- Knopf «Neue Rezepte»: lädt eine neue Auswahl und stellt neue Coop-Kombis zusammen
+- Filter «Mittag kochen» und «Mittag ohne Kochen»
+
 ## v1.5.0 – Coop-Einkaufsliste (2026-11-11)
 - Jedes Rezept zeigt die passenden Coop-Produkte mit Packungsgrösse
 - Link zur Produktseite auf coop.ch (Stand November 2026)

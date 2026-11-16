@@ -3,6 +3,17 @@
 // CHANGELOG.md ergänzen und den Git-Tag (z. B. v1.2.0) setzen.
 export const CHANGELOG = [
   {
+    version: '1.6.0',
+    date: '2026-11-16',
+    title: 'Mittagessen',
+    changes: [
+      '7 neue Mittagessen zum Kochen (auch zum Mitnehmen)',
+      '11 Mittagessen ohne Kochen aus Coop-Produkten, z. B. Brezel mit Trutenbrust',
+      'Knopf «Neue Rezepte»: lädt eine neue Auswahl und stellt neue Coop-Kombis zusammen',
+      'Filter «Mittag kochen» und «Mittag ohne Kochen»',
+    ],
+  },
+  {
     version: '1.5.0',
     date: '2026-11-11',
     title: 'Coop-Einkaufsliste',

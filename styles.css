@@ -462,3 +462,13 @@ a { color: var(--accent); }
 .shop-pack { font: 700 12px var(--font-game); color: var(--text); white-space: nowrap; align-self: center; }
 .shop-note { grid-column: 1 / -1; margin: 0; }
 .shop-list li > .muted { grid-column: 1 / -1; }
+
+/* ---- v1.6: Mittagessen, Neu laden ---- */
+.reload-btn { border-color: rgba(34, 211, 238, .5); color: var(--accent); gap: 6px; }
+.reload-btn .ico { width: 16px; height: 16px; }
+.reload-btn.spin .ico { animation: spin .6s ease; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.recipe-card.nocook { border-color: rgba(217, 70, 239, .4); }
+.recipe-card.nocook .recipe-icon { border-color: rgba(217, 70, 239, .5); }
+.tag.coop { color: #f0abfc; border-color: rgba(217, 70, 239, .5); }
+.tag.new { color: var(--gold); border-color: rgba(251, 191, 36, .5); }

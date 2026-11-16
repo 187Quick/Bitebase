@@ -8,7 +8,7 @@ import { prepareImage, analyzeFood } from './scanner.js';
 import { CHANGELOG, VERSION } from './version.js';
 import { exerciseImages } from './exercise-images.js';
 import { FOOD_CATEGORIES, findFood, nutrition, searchFoods } from './foods.js';
-import { RECIPES, RECIPE_CATS, recipeNutrition } from './recipes.js';
+import { RECIPES, recipeNutrition, generateKombi } from './recipes.js';
 import { coopProduct } from './coop-products.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -852,6 +852,47 @@ function remainingToday() {
   return { kcal: targets.kcal + burned - eaten.kcal, protein: targets.protein - eaten.protein };
 }
 
+const RECIPE_FILTERS = ['Alle', 'Passt heute', 'Frühstück', 'Mittag kochen', 'Mittag ohne Kochen', 'Hauptgericht', 'Snack', 'Vegi'];
+const RECIPE_SET_SIZE = 6;
+let recipeSet = null;     // aktuell angezeigte Rezepte
+let recipeSetFilter = null;
+
+function matchesFilter(r, n, rest) {
+  switch (recipeFilter) {
+    case 'Alle': return true;
+    case 'Passt heute': return !!rest && rest.kcal > 0 && n.kcal <= rest.kcal;
+    case 'Mittag kochen': return r.cat === 'Mittagessen' && !r.nocook;
+    case 'Mittag ohne Kochen': return r.cat === 'Mittagessen' && !!r.nocook;
+    case 'Vegi': return !!r.vegi;
+    default: return r.cat === recipeFilter;
+  }
+}
+
+/** Stellt eine neue Auswahl zusammen: andere Rezepte als vorher, plus frisch erzeugte Kombis ohne Kochen. */
+function newRecipeSet() {
+  const rest = remainingToday();
+  const previous = new Set((recipeSet || []).map(r => r.id));
+  const kombis = [];
+  if (['Alle', 'Passt heute', 'Mittag ohne Kochen', 'Vegi'].includes(recipeFilter)) {
+    for (let i = 0; i < 40 && kombis.length < 6; i++) {
+      const k = generateKombi();
+      if (!kombis.some(x => x.id === k.id)) kombis.push(k);
+    }
+  }
+  const shuffle = list => list.map(x => [Math.random(), x]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+  const ok = r => matchesFilter(r, recipeNutrition(r), rest);
+  const pool = shuffle(RECIPES.filter(ok));
+  const fresh = pool.filter(r => !previous.has(r.id));
+  const old = pool.filter(r => previous.has(r.id));
+  const genOk = shuffle(kombis.filter(ok));
+  // Bei «ohne Kochen» die Hälfte neu erzeugen, sonst höchstens zwei Kombis beimischen.
+  const genCount = recipeFilter === 'Mittag ohne Kochen' ? 3 : recipeFilter === 'Alle' || recipeFilter === 'Passt heute' ? 2 : 1;
+  const gen = genOk.slice(0, genCount);
+  const picked = [...fresh, ...old].slice(0, RECIPE_SET_SIZE - gen.length);
+  recipeSet = [...picked, ...gen];
+  recipeSetFilter = recipeFilter;
+}
+
 function renderRecipes() {
   const rest = remainingToday();
   $('#recipe-status').innerHTML = !rest
@@ -860,24 +901,26 @@ function renderRecipes() {
       ? `Dir fehlen ${isToday() ? 'heute' : 'an diesem Tag'} noch <strong class="accent">${fmt(rest.protein)} g Protein</strong>${rest.kcal > 0 ? ` und du hast noch <strong>${fmt(rest.kcal)} kcal</strong> übrig` : ''}.`
       : '<span class="pos">Protein-Ziel erreicht! 💪</span>';
 
-  const filters = ['Alle', ...(rest ? ['Passt heute'] : []), ...RECIPE_CATS, 'Vegi'];
+  const filters = RECIPE_FILTERS.filter(f => f !== 'Passt heute' || rest);
   if (!filters.includes(recipeFilter)) recipeFilter = 'Alle';
   $('#recipe-chips').innerHTML = filters.map(c => `<button class="chip${c === recipeFilter ? ' active' : ''}" data-recipe-filter="${c}">${c}</button>`).join('');
 
+  if (!recipeSet || recipeSetFilter !== recipeFilter) newRecipeSet();
+
   const fits = n => rest && rest.kcal > 0 && n.kcal <= rest.kcal;
-  const list = RECIPES.map(r => ({ r, n: recipeNutrition(r) }))
-    .filter(({ r, n }) => recipeFilter === 'Alle' || (recipeFilter === 'Passt heute' ? fits(n) : recipeFilter === 'Vegi' ? r.vegi : r.cat === recipeFilter))
-    .sort((a, b) => b.n.protein - a.n.protein);
+  const list = recipeSet.map(r => ({ r, n: recipeNutrition(r) })).sort((a, b) => b.n.protein - a.n.protein);
 
   $('#recipe-list').innerHTML = list.length ? list.map(({ r, n }) => `
-    <button class="card recipe-card" data-recipe="${r.id}">
+    <button class="card recipe-card${r.nocook ? ' nocook' : ''}" data-recipe="${esc(r.id)}">
       <span class="recipe-icon">${r.icon}</span>
       <span class="recipe-main">
         <span class="recipe-name">${esc(r.name)}</span>
         <span class="recipe-tags">
           <span class="tag protein">${n.protein} g Protein</span>
           <span class="tag">${fmt(n.kcal)} kcal</span>
-          <span class="tag">${r.time} Min.</span>
+          ${r.nocook ? '<span class="tag coop">ohne Kochen · Coop</span>' : `<span class="tag">${r.time} Min. kochen</span>`}
+          ${r.cat === 'Mittagessen' && !r.nocook ? '<span class="tag">Mittagessen</span>' : ''}
+          ${r.generated ? '<span class="tag new">neue Kombi</span>' : ''}
           ${r.vegan ? '<span class="tag green">vegan</span>' : r.vegi ? '<span class="tag green">vegi</span>' : ''}
           ${fits(n) ? '<span class="tag fit">passt heute</span>' : ''}
         </span>
@@ -887,7 +930,7 @@ function renderRecipes() {
 }
 
 function showRecipe(id) {
-  const r = RECIPES.find(x => x.id === id);
+  const r = (recipeSet || []).find(x => x.id === id) || RECIPES.find(x => x.id === id);
   if (!r) return;
   openRecipe = r;
   const n = recipeNutrition(r);
@@ -900,7 +943,7 @@ function showRecipe(id) {
       <div><span class="stat-value">${n.carbs} g</span><span class="stat-label">Kohlenh.</span></div>
       <div><span class="stat-value">${n.fat} g</span><span class="stat-label">Fett</span></div>
     </div>
-    <p class="muted small center">Nährwerte pro Portion · ${r.time} Min. · ${r.portions === 1 ? 'für 1 Portion' : `ergibt ${r.portions} Portionen`}</p>
+    <p class="muted small center">Nährwerte pro Portion · ${r.nocook ? 'ohne Kochen' : r.time + ' Min.'} · ${r.portions === 1 ? 'für 1 Portion' : `ergibt ${r.portions} Portionen`}</p>
     <h3>Zutaten${r.portions > 1 ? ` (für ${r.portions} Portionen)` : ''}</h3>
     <ul class="ingredients">
       ${r.ingredients.map(i => `<li>${esc(i[2])}</li>`).join('')}
@@ -910,16 +953,16 @@ function showRecipe(id) {
     <ul class="shop-list">
       ${r.ingredients.map(([food]) => {
         const c = coopProduct(food);
-        const label = esc(food.replace(/ \((roh|gekocht|abgetropft|Dose|teilentrahmt)\)/, ''));
+        const label = esc(food.replace(/ \((roh|gekocht|hartgekocht|abgetropft|Dose|teilentrahmt|Milch)\)/, ''));
         if (c?.url) return `<li><span class="shop-ing">${label}</span>
           <a href="${c.url}" target="_blank" rel="noopener">${esc(c.name)}</a>
           <span class="shop-pack">${esc(c.pack)}</span>
           ${c.note ? `<span class="muted tiny shop-note">${esc(c.note)}</span>` : ''}</li>`;
-        return `<li><span class="shop-ing">${label}</span><span class="muted">${c?.fresh ? 'Frisch aus der Früchte- und Gemüseabteilung' : 'Im Regal, verschiedene Marken'}</span></li>`;
+        return `<li><span class="shop-ing">${label}</span><span class="muted">${c?.fresh ? 'Frisch aus der Früchte- und Gemüseabteilung' : c?.bakery ? 'Frisch aus der Coop-Bäckerei (offen)' : 'Im Regal, verschiedene Marken'}</span></li>`;
       }).join('')}
     </ul>
     <p class="muted tiny">Produkte von coop.ch, Stand November 2026. Sortiment und Packungsgrössen können sich ändern. Die meisten Zutaten gibt es ähnlich auch bei Migros.</p>
-    <h3>Zubereitung</h3>
+    <h3>${r.nocook ? 'So geht’s' : 'Zubereitung'}</h3>
     <ol class="steps">${r.steps.map(st => `<li>${esc(st)}</li>`).join('')}</ol>`;
   $('#recipe-dialog').showModal();
   $('#recipe-dialog').scrollTop = 0;
@@ -1011,6 +1054,15 @@ function bind() {
   $('#recipe-chips').addEventListener('click', e => {
     const chip = e.target.closest('[data-recipe-filter]');
     if (chip) { recipeFilter = chip.dataset.recipeFilter; renderRecipes(); }
+  });
+  $('#btn-recipe-reload').addEventListener('click', e => {
+    const btn = e.currentTarget;
+    btn.classList.remove('spin');
+    void btn.offsetWidth; // Animation neu starten
+    btn.classList.add('spin');
+    newRecipeSet();
+    renderRecipes();
+    toast('Neue Rezepte geladen');
   });
   $('#recipe-list').addEventListener('click', e => {
     const card = e.target.closest('[data-recipe]');

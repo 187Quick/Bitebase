@@ -3,7 +3,7 @@
 // Zutaten: [Name in der Lebensmittel-Datenbank, Menge in g/ml für ALLE Portionen, Anzeige-Text]
 import { findFood, nutrition } from './foods.js';
 
-export const RECIPE_CATS = ['Frühstück', 'Hauptgericht', 'Snack'];
+export const RECIPE_CATS = ['Frühstück', 'Mittagessen', 'Hauptgericht', 'Snack'];
 
 export const RECIPES = [
   /* ---------- Frühstück ---------- */
@@ -86,6 +86,238 @@ export const RECIPES = [
       'Wenig Öl in einer beschichteten Pfanne erhitzen und kleine Pancakes auf beiden Seiten goldbraun backen.',
       'Mit dem restlichen Quark und den Heidelbeeren servieren.',
     ],
+  },
+
+  /* ---------- Mittagessen zum Kochen (auch gut zum Vorbereiten und Mitnehmen) ---------- */
+  {
+    id: 'poulet-couscous-salat', name: 'Poulet-Couscous-Salat', icon: '🥙', cat: 'Mittagessen', time: 20, portions: 1,
+    ingredients: [
+      ['Pouletbrust (roh)', 150, '150 g Pouletbrust'],
+      ['Couscous (gekocht)', 180, '60 g Couscous (roh)'],
+      ['Peperoni', 75, '½ Peperoni'],
+      ['Gurke', 100, '¼ Gurke'],
+      ['Feta', 30, '30 g Feta'],
+      ['Olivenöl', 5, '1 TL Olivenöl'],
+    ],
+    extras: ['Salz, Pfeffer, Zitrone, Petersilie'],
+    steps: [
+      'Couscous mit der gleichen Menge heissem Wasser übergiessen und 5 Minuten quellen lassen.',
+      'Poulet würzen, im Öl 6–8 Minuten braten und in Würfel schneiden.',
+      'Peperoni und Gurke würfeln, alles mischen und mit Zitrone abschmecken.',
+      'Feta darüberbröckeln. Schmeckt auch kalt aus der Box.',
+    ],
+  },
+  {
+    id: 'thon-reis-salat', name: 'Thon-Reis-Salat', icon: '🍚', cat: 'Mittagessen', time: 20, portions: 1,
+    ingredients: [
+      ['Reis (roh)', 70, '70 g Reis'],
+      ['Thon in Wasser (abgetropft)', 100, '1 kleine Dose Thon in Wasser'],
+      ['Mais (Dose)', 70, '½ kleine Dose Mais'],
+      ['Peperoni', 75, '½ Peperoni'],
+      ['Naturjoghurt mager', 50, '2 EL Naturjoghurt'],
+    ],
+    extras: ['Salz, Pfeffer, Senf, Zitrone'],
+    steps: [
+      'Reis kochen und kalt abspülen.',
+      'Peperoni würfeln und mit Reis, Thon und Mais mischen.',
+      'Joghurt mit Senf, Zitrone, Salz und Pfeffer verrühren und unterheben.',
+    ],
+  },
+  {
+    id: 'eier-fried-rice', name: 'Eier-Fried-Rice', icon: '🍳', cat: 'Mittagessen', time: 20, portions: 1, vegi: true,
+    ingredients: [
+      ['Reis (roh)', 70, '70 g Reis (am besten vom Vortag)'],
+      ['Ei', 165, '3 Eier'],
+      ['Erbsen', 100, '100 g Erbsen (tiefgekühlt)'],
+      ['Karotten', 80, '1 Karotte'],
+      ['Sojasauce', 15, '1½ EL Sojasauce'],
+      ['Rapsöl', 5, '1 TL Rapsöl'],
+    ],
+    extras: ['Frühlingszwiebel, Pfeffer'],
+    steps: [
+      'Reis kochen (oder Reis vom Vortag verwenden).',
+      'Karotte fein würfeln und mit den Erbsen im Öl 4 Minuten braten.',
+      'Reis dazugeben und heiss werden lassen.',
+      'Eier verquirlen, in die Pfanne geben, unter Rühren stocken lassen und mit Sojasauce würzen.',
+    ],
+  },
+  {
+    id: 'linsen-feta-salat', name: 'Linsen-Feta-Salat', icon: '🥗', cat: 'Mittagessen', time: 10, portions: 1, vegi: true,
+    ingredients: [
+      ['Linsen (gekocht)', 200, '200 g gekochte Linsen (Dose)'],
+      ['Feta', 60, '60 g Feta'],
+      ['Tomaten', 120, '1 Tomate'],
+      ['Gurke', 100, '¼ Gurke'],
+      ['Olivenöl', 10, '1 EL Olivenöl'],
+      ['Ruchbrot', 50, '1 Scheibe Ruchbrot'],
+    ],
+    extras: ['Salz, Pfeffer, Essig, Petersilie'],
+    steps: [
+      'Linsen abspülen und abtropfen lassen.',
+      'Tomate und Gurke würfeln und mit den Linsen mischen.',
+      'Mit Öl, Essig, Salz und Pfeffer anmachen und Feta darüberbröckeln.',
+    ],
+  },
+  {
+    id: 'pesto-pasta-poulet', name: 'Pesto-Pasta mit Poulet', icon: '🍝', cat: 'Mittagessen', time: 20, portions: 1,
+    ingredients: [
+      ['Teigwaren (roh)', 80, '80 g Teigwaren'],
+      ['Pouletbrust (roh)', 150, '150 g Pouletbrust'],
+      ['Pesto', 20, '1 EL Pesto'],
+      ['Cherrytomaten', 125, '½ Schale Cherrytomaten'],
+      ['Parmesan', 10, '1 EL Parmesan'],
+    ],
+    extras: ['Salz, Pfeffer'],
+    steps: [
+      'Teigwaren im Salzwasser kochen.',
+      'Poulet in Streifen schneiden, würzen und 6–8 Minuten braten.',
+      'Cherrytomaten halbieren und kurz mitbraten.',
+      'Alles mit dem Pesto mischen und mit Parmesan bestreuen.',
+    ],
+  },
+  {
+    id: 'lachs-quinoa-bowl', name: 'Rauchlachs-Quinoa-Bowl', icon: '🐟', cat: 'Mittagessen', time: 20, portions: 1,
+    ingredients: [
+      ['Quinoa (gekocht)', 180, '60 g Quinoa (roh)'],
+      ['Räucherlachs', 80, '80 g Rauchlachs'],
+      ['Edamame', 80, '80 g Edamame (geschält)'],
+      ['Avocado', 80, '½ Avocado'],
+      ['Gurke', 100, '¼ Gurke'],
+      ['Sojasauce', 10, '1 EL Sojasauce'],
+    ],
+    extras: ['Sesam, Limette'],
+    steps: [
+      'Quinoa nach Packungsangabe kochen, Edamame die letzten 3 Minuten mitkochen.',
+      'Gurke und Avocado schneiden.',
+      'Alles in einer Schale anrichten, Lachs darauflegen und mit Sojasauce und Limette würzen.',
+    ],
+  },
+  {
+    id: 'rindfleisch-wrap', name: 'Rindfleisch-Wraps', icon: '🌯', cat: 'Mittagessen', time: 15, portions: 1,
+    ingredients: [
+      ['Tortilla-Wrap', 120, '2 Tortilla-Wraps'],
+      ['Rindsgeschnetzeltes (roh)', 150, '150 g Rindsgeschnetzeltes'],
+      ['Peperoni', 75, '½ Peperoni'],
+      ['Blattsalat', 50, '1 Handvoll Salat'],
+      ['Naturjoghurt mager', 50, '2 EL Naturjoghurt'],
+      ['Rapsöl', 5, '1 TL Rapsöl'],
+    ],
+    extras: ['Salz, Pfeffer, Paprikapulver, Knoblauch'],
+    steps: [
+      'Fleisch würzen und im heissen Öl 2–3 Minuten scharf anbraten.',
+      'Peperoni in Streifen schneiden und kurz mitbraten.',
+      'Wraps erwärmen, mit Joghurt bestreichen, füllen und einrollen.',
+    ],
+  },
+
+  /* ---------- Mittagessen ohne Kochen: im Coop holen, auspacken, essen ---------- */
+  {
+    id: 'brezel-trutenbrust', name: 'Brezel mit Trutenbrust', icon: '🥨', cat: 'Mittagessen', nocook: true, time: 2, portions: 1,
+    ingredients: [
+      ['Laugenbrezel', 90, '1 Laugenbrezel'],
+      ['Trutenaufschnitt', 100, '100 g Trutenbrust-Aufschnitt'],
+      ['Cherrytomaten', 125, '½ Schale Cherrytomaten'],
+    ],
+    steps: ['Brezel aufschneiden oder die Trutenbrust einfach dazu essen.', 'Cherrytomaten als Beilage.'],
+  },
+  {
+    id: 'brezel-truten-drink', name: 'Brezel, Trutenbrust und Protein-Drink', icon: '🥨', cat: 'Mittagessen', nocook: true, time: 2, portions: 1,
+    ingredients: [
+      ['Laugenbrezel', 90, '1 Laugenbrezel'],
+      ['Trutenaufschnitt', 100, '100 g Trutenbrust-Aufschnitt'],
+      ['High-Protein-Drink (Milch)', 330, '1 High-Protein-Drink (330 ml)'],
+    ],
+    steps: ['Brezel mit Trutenbrust belegen.', 'Dazu den Protein-Drink trinken.'],
+  },
+  {
+    id: 'huettenkaese-box', name: 'Hüttenkäse-Box mit Knäckebrot', icon: '🧀', cat: 'Mittagessen', nocook: true, time: 3, portions: 1, vegi: true,
+    ingredients: [
+      ['Hüttenkäse', 200, '1 Becher Hüttenkäse (200 g)'],
+      ['Knäckebrot', 30, '3 Scheiben Knäckebrot'],
+      ['Cherrytomaten', 125, '½ Schale Cherrytomaten'],
+      ['Gurke', 100, '¼ Gurke'],
+    ],
+    steps: ['Hüttenkäse aufs Knäckebrot streichen.', 'Tomaten und Gurke dazu essen.'],
+  },
+  {
+    id: 'proteinbrot-lachs', name: 'Proteinbrot mit Rauchlachs und Hüttenkäse', icon: '🐟', cat: 'Mittagessen', nocook: true, time: 3, portions: 1,
+    ingredients: [
+      ['Proteinbrot', 100, '2 Scheiben Proteinbrot'],
+      ['Räucherlachs', 65, '½ Packung Rauchlachs (65 g)'],
+      ['Hüttenkäse', 100, '½ Becher Hüttenkäse'],
+      ['Gurke', 100, '¼ Gurke'],
+    ],
+    steps: ['Brot mit Hüttenkäse bestreichen.', 'Mit Lachs und Gurkenscheiben belegen.'],
+  },
+  {
+    id: 'eier-broetli-box', name: 'Eier-Brötli-Box', icon: '🥚', cat: 'Mittagessen', nocook: true, time: 3, portions: 1,
+    ingredients: [
+      ['Vollkornbrötli', 80, '1 Vollkornbrötli'],
+      ['Ei (hartgekocht)', 110, '2 gekochte Eier (PicNic)'],
+      ['Trutenaufschnitt', 60, '60 g Trutenbrust-Aufschnitt'],
+      ['Karotten', 100, '1 grosse Karotte'],
+    ],
+    steps: ['Brötli mit Trutenbrust und Ei belegen.', 'Karotte als Beilage knabbern.'],
+  },
+  {
+    id: 'buendner-teller', name: 'Bündner Teller', icon: '🥩', cat: 'Mittagessen', nocook: true, time: 2, portions: 1,
+    ingredients: [
+      ['Bündnerfleisch', 50, '50 g Bündnerfleisch'],
+      ['Vollkornbrötli', 80, '1 Vollkornbrötli'],
+      ['Hüttenkäse', 100, '½ Becher Hüttenkäse'],
+      ['Cherrytomaten', 125, '½ Schale Cherrytomaten'],
+    ],
+    steps: ['Alles auspacken und zusammen essen.'],
+  },
+  {
+    id: 'thon-wrap-kalt', name: 'Kalter Thon-Wrap', icon: '🌯', cat: 'Mittagessen', nocook: true, time: 5, portions: 1,
+    ingredients: [
+      ['Tortilla-Wrap', 60, '1 Tortilla-Wrap'],
+      ['Thon in Wasser (abgetropft)', 100, '1 kleine Dose Thon in Wasser'],
+      ['Hüttenkäse', 50, '2 EL Hüttenkäse'],
+      ['Mais (Dose)', 70, '½ kleine Dose Mais'],
+      ['Blattsalat', 50, '1 Handvoll Salat'],
+    ],
+    steps: ['Thon abtropfen und mit Hüttenkäse und Mais mischen.', 'Mit dem Salat in den Wrap füllen und einrollen.'],
+  },
+  {
+    id: 'skyr-lunch', name: 'Skyr-Becher mit Banane und Mandeln', icon: '🍌', cat: 'Mittagessen', nocook: true, time: 2, portions: 1, vegi: true,
+    ingredients: [
+      ['Skyr nature', 400, '1 Becher Skyr nature (400 g)'],
+      ['Banane', 120, '1 Banane'],
+      ['Mandeln', 20, '20 g Mandeln'],
+    ],
+    steps: ['Banane in den Skyr schneiden.', 'Mandeln darüberstreuen.'],
+  },
+  {
+    id: 'mozzarella-proteinbrot', name: 'Mozzarella-Tomaten-Brot', icon: '🍅', cat: 'Mittagessen', nocook: true, time: 4, portions: 1, vegi: true,
+    ingredients: [
+      ['Mozzarella light', 150, '1 Kugel Mozzarella light'],
+      ['Cherrytomaten', 125, '½ Schale Cherrytomaten'],
+      ['Proteinbrot', 100, '2 Scheiben Proteinbrot'],
+      ['Olivenöl', 5, '1 TL Olivenöl'],
+    ],
+    steps: ['Mozzarella und Tomaten aufs Brot legen.', 'Mit Olivenöl, Salz und Pfeffer würzen.'],
+  },
+  {
+    id: 'quark-dip-brezel', name: 'Magerquark-Dip mit Gemüse und Brezel', icon: '🥕', cat: 'Mittagessen', nocook: true, time: 4, portions: 1, vegi: true,
+    ingredients: [
+      ['Magerquark', 250, '1 Becher Magerquark (250 g)'],
+      ['Karotten', 100, '1 grosse Karotte'],
+      ['Gurke', 100, '¼ Gurke'],
+      ['Laugenbrezel', 90, '1 Laugenbrezel'],
+    ],
+    extras: ['Salz, Pfeffer, Kräuter (optional)'],
+    steps: ['Quark würzen.', 'Gemüse in Stifte schneiden und mit der Brezel dippen.'],
+  },
+  {
+    id: 'pudding-riegel', name: 'Protein-Pudding mit Banane und Riegel', icon: '🍫', cat: 'Mittagessen', nocook: true, time: 1, portions: 1, vegi: true,
+    ingredients: [
+      ['High-Protein-Pudding', 200, '½ Becher High-Protein-Pudding (200 g)'],
+      ['Banane', 120, '1 Banane'],
+      ['Proteinriegel', 45, '1 High-Protein-Riegel'],
+    ],
+    steps: ['Für den schnellen Hunger unterwegs: auspacken und essen.'],
   },
 
   /* ---------- Hauptgerichte ---------- */
@@ -372,5 +604,63 @@ export function recipeNutrition(recipe) {
     protein: Math.round(total.protein / p),
     carbs: Math.round(total.carbs / p),
     fat: Math.round(total.fat / p),
+  };
+}
+
+/* ---------- Neue Kombis ohne Kochen (werden bei «Neu laden» frisch zusammengestellt) ---------- */
+
+const KOMBI = {
+  base: [
+    ['Laugenbrezel', 90, '1 Laugenbrezel', 'Brezel', '🥨'],
+    ['Vollkornbrötli', 80, '1 Vollkornbrötli', 'Vollkornbrötli', '🥖'],
+    ['Proteinbrot', 100, '2 Scheiben Proteinbrot', 'Proteinbrot', '🍞'],
+    ['Knäckebrot', 30, '3 Scheiben Knäckebrot', 'Knäckebrot', '🍘'],
+    ['Tortilla-Wrap', 60, '1 Tortilla-Wrap', 'Wrap', '🌯'],
+  ],
+  protein: [
+    ['Trutenaufschnitt', 100, '100 g Trutenbrust-Aufschnitt', 'Trutenbrust'],
+    ['Hinterschinken', 80, '1 Packung Hinterschinken (80 g)', 'Schinken'],
+    ['Hüttenkäse', 200, '1 Becher Hüttenkäse (200 g)', 'Hüttenkäse', true],
+    ['Thon in Wasser (abgetropft)', 100, '1 kleine Dose Thon in Wasser', 'Thon'],
+    ['Ei (hartgekocht)', 110, '2 gekochte Eier (PicNic)', 'Ei', true],
+    ['Bündnerfleisch', 50, '50 g Bündnerfleisch', 'Bündnerfleisch'],
+    ['Räucherlachs', 65, '½ Packung Rauchlachs (65 g)', 'Rauchlachs'],
+    ['Mozzarella light', 150, '1 Kugel Mozzarella light', 'Mozzarella', true],
+  ],
+  side: [
+    ['Cherrytomaten', 125, '½ Schale Cherrytomaten', 'Cherrytomaten'],
+    ['Gurke', 100, '¼ Gurke', 'Gurke'],
+    ['Karotten', 100, '1 grosse Karotte', 'Karotte'],
+    ['Apfel', 150, '1 Apfel', 'Apfel'],
+    ['Banane', 120, '1 Banane', 'Banane'],
+  ],
+  extra: [
+    null,
+    null,
+    ['High-Protein-Drink (Milch)', 330, '1 High-Protein-Drink (330 ml)', 'Protein-Drink'],
+    ['Skyr nature', 200, '½ Becher Skyr nature (200 g)', 'Skyr'],
+    ['High-Protein-Pudding', 200, '½ Becher High-Protein-Pudding (200 g)', 'Protein-Pudding'],
+    ['Proteinriegel', 45, '1 High-Protein-Riegel', 'Proteinriegel'],
+  ],
+};
+
+const pick = list => list[Math.floor(Math.random() * list.length)];
+
+/** Stellt eine neue Kombi aus Coop-Produkten zusammen, die man ohne Kochen essen kann. */
+export function generateKombi() {
+  const base = pick(KOMBI.base), protein = pick(KOMBI.protein), side = pick(KOMBI.side), extra = pick(KOMBI.extra);
+  const parts = [base, protein, side, ...(extra ? [extra] : [])];
+  return {
+    id: 'kombi-' + parts.map(p => p[0]).join('|'),
+    name: extra ? `${base[3]} mit ${protein[3]}, ${side[3]} und ${extra[3]}` : `${base[3]} mit ${protein[3]} und ${side[3]}`,
+    icon: base[4],
+    cat: 'Mittagessen',
+    nocook: true,
+    generated: true,
+    vegi: !!protein[4],
+    time: 3,
+    portions: 1,
+    ingredients: parts.map(p => [p[0], p[1], p[2]]),
+    steps: ['Alles im Coop holen und auspacken.', `${base[3]} mit ${protein[3]} belegen oder dazu essen, ${side[3]}${extra ? ' und ' + extra[3] : ''} als Beilage.`],
   };
 }
